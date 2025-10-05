@@ -1,226 +1,481 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Thanh toán & Khách hàng</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input[type="text"], input[type="number"], textarea, select { 
-            width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; 
+<script>
+    // ----------------------------------------------------------------------------------
+    // GLOBAL VARS & SETUP (ĐÃ CẬP NHẬT CHO GITHUB PAGES)
+    // ----------------------------------------------------------------------------------
+    
+    // !!! THAY THẾ BẰNG URL WEB APP CỦA BẠN (sau khi triển khai Code.gs mới) !!!
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwyeM1GPhUGnRu6yV0K44nIf9mxUXrkypdOAIKuJyttEmXJWuaZrtPvXX-go0E0ezX3TA/exec"; 
+    
+    let customerDataMap = {};
+    let currentCustomerDetails = null; 
+    const PERSISTENT_NOTIFICATION_KEY = 'last_transaction_message'; 
+    let debounceTimer; 
+
+    // Hàm HỖ TRỢ tính toán ngày tháng (đã chuyển về client-side để tốc độ cao)
+    function calculateDateAfterMonths(date, months) {
+        const newDate = new Date(date);
+        const daysToAdd = months * (365.25 / 12); 
+        newDate.setDate(newDate.getDate() + daysToAdd);
+        return newDate;
+    }
+    
+    function formatDateDisplay(date) {
+        if (!(date instanceof Date) || isNaN(date)) return 'N/A';
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+    }
+
+    // ----------------------------------------------------------------------------------
+    // HÀM HIỂN THỊ THÔNG BÁO VÀ LOADING (Giữ nguyên)
+    // ----------------------------------------------------------------------------------
+    
+    function showPersistentNotification(message, saveState = true) {
+        const notificationEl = document.getElementById('persistent-notification');
+        notificationEl.innerHTML = message;
+        notificationEl.classList.remove('visible'); 
+        setTimeout(() => { notificationEl.classList.add('visible'); }, 50);
+        if (saveState) { sessionStorage.setItem(PERSISTENT_NOTIFICATION_KEY, message); }
+    }
+    
+    function clearPersistentNotification() {
+        const notificationEl = document.getElementById('persistent-notification');
+        notificationEl.classList.remove('visible');
+        setTimeout(() => { sessionStorage.removeItem(PERSISTENT_NOTIFICATION_KEY); }, 300);
+    }
+
+    function showDialog(message, title = 'Thông Báo') {
+        alert(`${title}:\n${message}`); 
+    }
+
+    function toggleLoading(show) {
+        document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        if (show) {
+            document.getElementById('persistent-notification').classList.remove('visible');
+        } else {
+            loadPersistentNotificationState();
         }
-        button { padding: 10px 15px; margin-top: 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; transition: background-color 0.3s; }
-        button:hover { background-color: #0056b3; }
-        #message { margin-top: 20px; padding: 15px; border-radius: 4px; font-weight: bold; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flex-group { display: flex; gap: 20px; }
-        .flex-group > div { flex: 1; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Quản Lý Dịch Vụ Mạng</h1>
+    }
 
-        <button onclick="toggleNewCustomerForm()">+ Thêm Khách Hàng Mới</button>
-        <div id="newCustomerFormContainer" class="hidden">
-            <h2>Thêm Khách Hàng Mới</h2>
-            <form id="addCustomerForm">
-                <input type="hidden" name="action" value="add_customer">
-                <label for="ten_kh_moi">Tên KH (Duy nhất):</label>
-                <input type="text" id="ten_kh_moi" name="ten_kh_moi" required>
-                
-                <label for="goi_cuoc_moi">Gói cước (VNĐ/tháng):</label>
-                <input type="number" id="goi_cuoc_moi" name="goi_cuoc_moi" required>
-                
-                <label for="tien_nop_ban_dau">Tiền nộp ban đầu:</label>
-                <input type="number" id="tien_nop_ban_dau" name="tien_nop_ban_dau" required>
-                
-                <label for="ghi_chu_moi">Ghi chú ban đầu (Địa chỉ, SĐT...):</label>
-                <textarea id="ghi_chu_moi" name="ghi_chu_moi"></textarea>
-                
-                <button type="submit">Xác nhận Thêm Khách Hàng</button>
-            </form>
-        </div>
+    function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
+    function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+    
+    // ----------------------------------------------------------------------------------
+    // HÀM XỬ LÝ ĐỊNH DẠNG SỐ VÀ TIỀN TỆ (Giữ nguyên)
+    // ----------------------------------------------------------------------------------
 
-        <hr>
+    function getRawNumber(formattedString) {
+      if (typeof formattedString !== 'string') return 0;
+      const rawString = formattedString.replace(/\./g, '').replace(/,/g, ''); 
+      return parseInt(rawString) || 0;
+    }
 
-        <h2>Cập Nhật Thanh Toán</h2>
-        <form id="updatePaymentForm">
-            <input type="hidden" name="action" value="update_payment">
-            
-            <label for="ten_kh">Chọn Khách Hàng:</label>
-            <select id="ten_kh" name="ten_kh" required onchange="displayCustomerInfo()"></select>
-
-            <div id="customerInfo" style="margin-top: 10px; padding: 10px; border: 1px dashed #ccc; background: #f9f9f9;">
-                <p>Hạn dùng cũ: <span id="old_han_dung">...</span> | Gói cước: <span id="monthly_cost">...</span></p>
+    function formatNumber(number) {
+      if (typeof number !== 'number' || isNaN(number)) return '';
+      return number.toLocaleString('vi-VN');
+    }
+    
+    function formatCurrencyInput(inputElement, isModal = false) {
+      const rawValue = inputElement.value;
+      const rawNumber = getRawNumber(rawValue);
+      inputElement.value = formatNumber(rawNumber);
+      
+      if (!isModal) {
+         clearTimeout(debounceTimer);
+         debounceTimer = setTimeout(() => {
+             calculateDueDate(); 
+         }, 300); 
+      }
+      return rawNumber;
+    }
+    
+    function formatAndCalculate(inputElement) {
+      formatCurrencyInput(inputElement, false);
+    }
+    
+    function formatCurrency(number) {
+      if (typeof number !== 'number' || isNaN(number)) return 'N/A';
+      return number.toLocaleString('vi-VN') + ' VNĐ';
+    }
+    
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString || dateTimeString === 'N/A') return 'N/A';
+        // Apps Script trả về ngày tháng chuẩn, JavaScript sẽ tự động xử lý.
+        const date = new Date(dateTimeString);
+        if(isNaN(date)) return dateTimeString; // Tránh lỗi nếu định dạng không phải chuẩn
+        
+        // Định dạng lại theo yêu cầu: HH:mm - DD/MM/YYYY
+        const options = {
+            hour: '2-digit', minute: '2-digit', 
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour12: false
+        };
+        return date.toLocaleString('vi-VN', options).replace(',', ' -');
+    }
+    
+    function formatHistoryItem(label, value, isRed = false) {
+        const valueClass = `text-sm font-medium ${isRed ? 'text-red-600 font-bold' : 'text-gray-800'}`;
+        return `
+            <div class="history-item">
+                <span class="history-label">${label}</span>
+                <span class="${valueClass}">${value}</span>
             </div>
+        `;
+    }
+    
+    function isValidDateString(dateString) {
+        const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+        if (!regex.test(dateString)) return false;
 
-            <label for="so_tien">Số tiền khách nộp (VNĐ):</label>
-            <input type="number" id="so_tien" name="so_tien" required oninput="calculateMonths()">
-            
-            <div class="flex-group">
-                <div>
-                    <label>Số tháng tính được:</label>
-                    <input type="text" id="calculated_months" disabled style="background-color: #e9ecef;">
-                </div>
-                <div>
-                    <label>Hạn dùng mới dự kiến:</label>
-                    <input type="text" id="new_han_dung" disabled style="background-color: #e9ecef;">
-                </div>
-            </div>
+        const parts = dateString.split('/');
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
 
-            <label for="ghi_chu">Ghi chú (Cập nhật địa chỉ, SĐT...):</label>
-            <textarea id="ghi_chu" name="ghi_chu"></textarea>
-            
-            <button type="submit">Xác nhận Nộp Tiền</button>
-        </form>
+        if (year < 1900 || year > 2100 || month < 1 || month > 12) return false;
 
-        <div id="message"></div>
-    </div>
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && (date.getMonth() + 1) === month && date.getDate() === day;
+    }
 
-    <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzVL8lzR2mZ0gNf9TMYMr54dUgpUCrx0exCM3e_0hKYNTK1vaZh253W9dWFj2xHkc-jDw/exec"; // THAY THẾ BẰNG URL WEB APP CỦA BẠN
-        const customerData = {}; // Lưu trữ dữ liệu khách hàng
+    function autoFormatDateInput(input) {
+        let value = input.value.replace(/[^0-9]/g, ''); 
+        if (value.length > 8) { value = value.substring(0, 8); }
+        let formatted = '';
+        if (value.length > 2) {
+            formatted += value.substring(0, 2) + '/';
+            value = value.substring(2);
+        } else { formatted = value; input.value = formatted; return; }
+        if (value.length > 2) {
+            formatted += value.substring(0, 2) + '/';
+            value = value.substring(2);
+        } else { formatted += value; input.value = formatted; return; }
+        formatted += value.substring(0, 4); 
+        input.value = formatted;
+    }
 
-        // Toggle form thêm khách hàng mới
-        function toggleNewCustomerForm() {
-            const container = document.getElementById('newCustomerFormContainer');
-            container.classList.toggle('hidden');
+    // ----------------------------------------------------------------------------------
+    // 1. TẢI TOÀN BỘ DỮ LIỆU TỪ SERVER (ĐÃ CHUYỂN SANG FETCH GET)
+    // ----------------------------------------------------------------------------------
+    async function loadCustomerNamesAndData() {
+      toggleLoading(true);
+      clearPersistentNotification();
+
+      try {
+          const response = await fetch(WEB_APP_URL, { method: 'GET' });
+          const result = await response.json();
+
+          if (!result.success) {
+              throw new Error(result.message || "Lỗi không xác định khi tải dữ liệu.");
+          }
+          
+          const dataMap = result.data;
+          customerDataMap = dataMap;
+          const select = document.getElementById('customerName');
+          const customerNames = Object.keys(dataMap).sort();
+
+          const currentValue = select.value;
+          
+          while (select.options.length > 1) { select.remove(1); }
+
+          customerNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+          });
+
+          select.options[0].textContent = '-- Chọn Tên Khách Hàng --';
+
+          if(currentValue && customerNames.includes(currentValue)) {
+              select.value = currentValue;
+              handleCustomerSelect(currentValue); 
+          } else {
+              resetUI();
+          }
+          
+          toggleLoading(false);
+
+      } catch (error) {
+          document.getElementById('customerName').options[0].textContent = '-- Lỗi Tải Dữ Liệu --';
+          showDialog(`Lỗi tải dữ liệu: ${error.message}`, 'Lỗi');
+          toggleLoading(false);
+      }
+    }
+    
+    function loadPersistentNotificationState() {
+        const savedMessage = sessionStorage.getItem(PERSISTENT_NOTIFICATION_KEY);
+        if (savedMessage) { showPersistentNotification(savedMessage, false); }
+    }
+
+
+    // ----------------------------------------------------------------------------------
+    // 2. XỬ LÝ SỰ KIỆN CHỌN KHÁCH HÀNG (Giữ nguyên logic)
+    // ----------------------------------------------------------------------------------
+    function handleCustomerSelect(customerName) {
+        const paymentSection = document.getElementById('paymentSection');
+        const submitButton = document.getElementById('submitPayment');
+        
+        // Reset Inputs
+        document.getElementById('paidAmount').value = '';
+        document.getElementById('newNote').value = '';
+        document.getElementById('newDueDateDisplay').textContent = '--/--/----';
+        document.getElementById('calculatedMonthsDisplay').textContent = '0 tháng';
+        document.getElementById('rawNewDueDate').value = '';
+        document.getElementById('calculatedMonths').value = 0;
+        document.getElementById('packageValue').value = '';
+        document.getElementById('rowIndex').value = '';
+        document.getElementById('historyDetails').innerHTML = '';
+        document.getElementById('suggestionText').querySelector('span').textContent = 'N/A';
+        document.getElementById('packageInfo').classList.add('hidden');
+
+        paymentSection.classList.add('hidden');
+        submitButton.disabled = true;
+
+        if (!customerName) {
+            currentCustomerDetails = null;
+            return;
         }
 
-        // Tải danh sách khách hàng từ Apps Script
-        async function loadCustomerList() {
-            const select = document.getElementById('ten_kh');
-            select.innerHTML = '<option value="" disabled selected>Đang tải...</option>';
+        const details = customerDataMap[customerName];
+        currentCustomerDetails = details;
+
+        if (details) {
+            // Cập nhật trường ẩn
+            document.getElementById('packageValue').value = details.package || ''; 
+            document.getElementById('rowIndex').value = details.rowIndex || '';
+            
+            // Cập nhật gợi ý số tiền
+            document.getElementById('suggestionText').querySelector('span').textContent = formatCurrency(details.previousAmount || 0);
+            
+            // Cập nhật gói cước hiển thị nhanh
+            document.getElementById('currentPackage').textContent = formatCurrency(details.package || 0);
+            document.getElementById('packageInfo').classList.remove('hidden');
+
+            // Hiển thị thông tin lịch sử
+            let historyHTML = '';
+            historyHTML += formatHistoryItem('Hạn dùng gần nhất:', details.lastDueDate, true);
+            historyHTML += formatHistoryItem('Ngày nộp (lần trước):', formatDateTime(details.lastPaidDate || 'N/A'));
+            historyHTML += formatHistoryItem('Số tiền nộp trước:', formatCurrency(details.previousAmount || 0));
+            historyHTML += formatHistoryItem('Ghi chú cũ:', details.previousNote || 'Không có');
+            
+            document.getElementById('historyDetails').innerHTML = historyHTML;
+            
+            paymentSection.classList.remove('hidden');
+
+            setTimeout(() => {
+                const paidAmountInput = document.getElementById('paidAmount');
+                if (paidAmountInput) { paidAmountInput.focus(); }
+            }, 0); 
+        } else {
+            showDialog('Khách hàng này không có trong dữ liệu nền. Vui lòng kiểm tra lại.', 'Cảnh Báo');
+        }
+    }
+    
+    function resetUI() {
+        document.getElementById('customerName').value = '';
+        handleCustomerSelect(''); 
+        currentCustomerDetails = null;
+    }
+
+    // ----------------------------------------------------------------------------------
+    // 3. XỬ LÝ LOGIC TÍNH TOÁN VÀ SUBMIT (ĐÃ CHUYỂN TÍNH TOÁN SANG CLIENT-SIDE)
+    // ----------------------------------------------------------------------------------
+
+    function calculateDueDate() {
+        const paidAmountInput = document.getElementById('paidAmount');
+        const paidAmount = getRawNumber(paidAmountInput.value); 
+        const newDueDateDisplay = document.getElementById('newDueDateDisplay');
+        const calculatedMonthsDisplay = document.getElementById('calculatedMonthsDisplay');
+        const submitButton = document.getElementById('submitPayment');
+        
+        const packageValue = Number(document.getElementById('packageValue').value);
+
+        // Reset nếu không hợp lệ
+        if (!currentCustomerDetails || paidAmount <= 0 || isNaN(packageValue) || packageValue <= 0) {
+            submitButton.disabled = true;
+            newDueDateDisplay.textContent = '--/--/----';
+            calculatedMonthsDisplay.textContent = '0 tháng'; 
+            document.getElementById('rawNewDueDate').value = '';
+            document.getElementById('calculatedMonths').value = 0;
+            if (currentCustomerDetails && packageValue <= 0) {
+                 showDialog("Lỗi: Khách hàng chưa có Gói Cước hợp lệ.", "Cảnh Báo Dữ Liệu Thiếu");
+            }
+            return;
+        }
+        
+        submitButton.disabled = false;
+        
+        const lastDueDateString = currentCustomerDetails.lastDueDate;
+        
+        // **LOGIC TÍNH TOÁN CHUYỂN SANG CLIENT-SIDE**
+        const calculatedMonths = paidAmount / packageValue;
+        
+        let startDate;
+        if (lastDueDateString && lastDueDateString !== 'N/A') {
+            const parts = lastDueDateString.split('/').map(Number);
+            startDate = new Date(parts[2], parts[1] - 1, parts[0]);
+        } else {
+            startDate = new Date(); 
+        }
+        
+        const newDueDate = calculateDateAfterMonths(startDate, calculatedMonths);
+
+        // Cập nhật UI
+        const newDueDateStr = formatDateDisplay(newDueDate);
+        newDueDateDisplay.textContent = newDueDateStr;
+        calculatedMonthsDisplay.textContent = `${calculatedMonths.toFixed(2)} tháng`;
+        
+        document.getElementById('rawNewDueDate').value = newDueDateStr;
+        document.getElementById('calculatedMonths').value = calculatedMonths.toFixed(2);
+    }
+    
+    // Hàm gửi POST request chung
+    async function sendPostRequest(data) {
+        const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(data).toString() 
+        });
+        return response.json();
+    }
+    
+    // Xử lý Submit Thanh toán (ĐÃ CHUYỂN SANG FETCH POST)
+    document.getElementById('submitPayment').addEventListener('click', async function(e) {
+        e.preventDefault();
+        
+        const rawPaidAmount = getRawNumber(document.getElementById('paidAmount').value);
+        const customerName = document.getElementById('customerName').value;
+        const newDueDate = document.getElementById('rawNewDueDate').value;
+        
+        if (!customerName || rawPaidAmount <= 0 || !newDueDate || newDueDate.includes('--/--/----')) {
+            showDialog("Vui lòng chọn khách hàng và nhập số tiền hợp lệ (> 0).", 'Cảnh Báo');
+            return;
+        }
+
+        const confirmMessage = `Xác nhận nộp ${formatNumber(rawPaidAmount)} VNĐ cho KH: ${customerName}?\nHạn dùng mới: ${newDueDate}`;
+        
+        if (confirm(confirmMessage)) {
+            toggleLoading(true);
+
+            const formData = {
+                action: 'process_payment', // Thêm action để server biết xử lý gì
+                customerName: customerName,
+                paidAmount: rawPaidAmount,
+                newDueDate: newDueDate,
+                calculatedMonths: document.getElementById('calculatedMonths').value,
+                packageValue: document.getElementById('packageValue').value,
+                newNote: document.getElementById('newNote').value.trim(),
+                rowIndex: document.getElementById('rowIndex').value,
+            };
 
             try {
-                const response = await fetch(WEB_APP_URL, { method: 'GET' });
-                const result = await response.json();
+                const response = await sendPostRequest(formData);
 
-                if (result.status === 'success') {
-                    select.innerHTML = '<option value="" disabled selected>-- Chọn khách hàng --</option>';
-                    
-                    result.data.forEach(customer => {
-                        select.innerHTML += `<option value="${customer.TênKH}">${customer.TênKH}</option>`;
-                        // Lưu dữ liệu vào biến toàn cục để dùng khi tính toán
-                        customerData[customer.TênKH] = customer; 
-                    });
-                    displayMessage('Tải dữ liệu thành công.', 'success');
+                toggleLoading(false);
+                if (response.success) {
+                    const message = `<p class="text-emerald-600 font-medium">
+                            ✅ đã nộp tiền cho 
+                            <span class="text-blue-700 font-extrabold">${response.customerName}</span>. 
+                            hạn dùng mới đến 
+                            <span class="text-blue-700 font-extrabold">${response.newDueDate}</span>.
+                        </p>`;
+                    showPersistentNotification(message, true); 
+                    resetUI(); 
+                    loadCustomerNamesAndData(); 
+
                 } else {
-                    displayMessage('Lỗi tải danh sách: ' + result.message, 'error');
+                    showDialog(response.message || "Đã xảy ra lỗi khi cập nhật thanh toán.", 'Lỗi Cập Nhật');
                 }
             } catch (error) {
-                displayMessage('Lỗi kết nối API: ' + error.message, 'error');
+                toggleLoading(false);
+                showDialog(`Lỗi Kết Nối Server: ${error.message}`, 'Lỗi');
             }
         }
-
-        // Hiển thị thông tin KH khi chọn
-        function displayCustomerInfo() {
-            const selectedName = document.getElementById('ten_kh').value;
-            const info = customerData[selectedName];
-            
-            if (info) {
-                // Định dạng ngày tháng
-                const hanDungCu = info.HạnDùng ? new Date(info.HạnDùng).toLocaleDateString('vi-VN') : 'N/A';
-                
-                document.getElementById('old_han_dung').textContent = hanDungCu;
-                document.getElementById('monthly_cost').textContent = info.Góicước;
-                document.getElementById('ghi_chu').value = info.Ghichú || '';
-            }
-            calculateMonths(); // Tính toán lại khi đổi KH
+    });
+    
+    // Xử lý Submit Thêm Khách Hàng Mới (ĐÃ CHUYỂN SANG FETCH POST)
+    document.getElementById('addCustomerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const rawInitialAmount = getRawNumber(document.getElementById('initialAmount').value);
+        const newCustomerName = document.getElementById('newCustomerName').value.trim();
+        const dueDate = document.getElementById('newCustomerDueDate').value.trim();
+        const packageValue = document.getElementById('initialPackage').value;
+        
+        if (!newCustomerName || rawInitialAmount < 0 || parseInt(packageValue) <= 0 || !isValidDateString(dueDate)) {
+            showDialog("Vui lòng điền đủ Tên, Số tiền (>= 0), Gói cước (> 0) và Hạn dùng đúng định dạng DD/MM/YYYY.", 'Cảnh Báo');
+            return;
         }
 
-        // Tính toán tự động số tháng và hạn dùng mới
-        function calculateMonths() {
-            const selectedName = document.getElementById('ten_kh').value;
-            const amount = Number(document.getElementById('so_tien').value);
-            const customer = customerData[selectedName];
-
-            const monthsInput = document.getElementById('calculated_months');
-            const dueDateInput = document.getElementById('new_han_dung');
-
-            if (!customer || !amount || isNaN(amount)) {
-                monthsInput.value = '';
-                dueDateInput.value = '';
-                return;
-            }
-
-            const monthlyCost = Number(customer.Góicước);
-            if (!monthlyCost || monthlyCost <= 0) {
-                monthsInput.value = 'Lỗi gói cước';
-                dueDateInput.value = 'Lỗi gói cước';
-                return;
-            }
-
-            const calculatedMonths = amount / monthlyCost;
-            monthsInput.value = calculatedMonths.toFixed(2); // Hiển thị 2 chữ số thập phân
-
-            // Tính hạn dùng mới: Hạn dùng cũ + Số tháng
-            const oldDate = new Date(customer.HạnDùng);
-            const newDate = new Date(oldDate);
-            const daysToAdd = calculatedMonths * (365.25 / 12); 
-            newDate.setDate(newDate.getDate() + daysToAdd);
-            
-            dueDateInput.value = newDate.toLocaleDateString('vi-VN');
+        if (newCustomerName in customerDataMap) {
+            showDialog("Tên khách hàng này đã tồn tại. Vui lòng dùng form Thanh Toán chính.", 'Cảnh Báo');
+            return;
         }
+        
+        toggleLoading(true);
 
+        const formData = {
+            action: 'add_customer', // Thêm action để server biết xử lý gì
+            newCustomerName: newCustomerName,
+            initialAmount: rawInitialAmount, 
+            dueDate: dueDate,           
+            packageValue: packageValue, 
+            note: document.getElementById('initialNote').value.trim(),
+        };
 
-        // Xử lý submit form
-        document.getElementById('updatePaymentForm').addEventListener('submit', handleFormSubmit);
-        document.getElementById('addCustomerForm').addEventListener('submit', handleFormSubmit);
+        try {
+            const response = await sendPostRequest(formData);
 
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const form = e.target;
-            displayMessage('Đang xử lý...', 'info');
+            toggleLoading(false);
+            if (response.success) {
+                const message = `<p class="text-emerald-600 font-medium">
+                    ✨ đã tạo khách hàng 
+                    <span class="text-blue-700 font-extrabold">${response.customerName}</span> thành công! 
+                    hạn dùng đến 
+                    <span class="text-blue-700 font-extrabold">${response.newDueDate}</span>.
+                </p>`;
+                showPersistentNotification(message, true); 
+              
+                closeModal('newCustomerModal'); 
+                document.getElementById('addCustomerForm').reset();
+                loadCustomerNamesAndData(); 
 
-            const formData = new FormData(form);
-            const data = {};
-            // Chuyển FormData sang Object
-            formData.forEach((value, key) => { data[key] = value; });
-
-            try {
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    // Chuyển Object thành chuỗi query params (Apps Script cần định dạng này)
-                    body: new URLSearchParams(data).toString() 
-                });
-
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    displayMessage(`✅ ${result.message}`, 'success');
-                    form.reset();
-                    loadCustomerList(); // Tải lại danh sách sau khi cập nhật/thêm
-                    if (form.id === 'addCustomerForm') {
-                        document.getElementById('newCustomerFormContainer').classList.add('hidden');
-                    }
-                } else {
-                    displayMessage(`❌ Lỗi: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                displayMessage(`❌ Lỗi kết nối: ${error.message}`, 'error');
+            } else {
+              showDialog(response.message || "Đã xảy ra lỗi khi thêm khách hàng mới.", 'Lỗi');
             }
+        } catch (error) {
+            toggleLoading(false);
+            showDialog(`Lỗi Kết Nối Server: ${error.message}`, 'Lỗi');
         }
-
-        function displayMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.className = type; // Cập nhật class
-            messageDiv.textContent = text;
+    });
+    
+    // ----------------------------------------------------------------------------------
+    // 4. KHỞI TẠO VÀ EVENTS
+    // ----------------------------------------------------------------------------------
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        // Không cần kiểm tra google.script.run nữa
+        if (WEB_APP_URL === "URL_WEB_APP_SAU_KHI_TRIỂN_KHAI_ĐẶT_VÀO_ĐÂY") {
+             showDialog('Lỗi cấu hình: Vui lòng thay WEB_APP_URL trong mã JavaScript bằng URL Apps Script của bạn.', 'Lỗi Khởi Tạo');
+             document.getElementById('customerName').options[0].textContent = '-- Lỗi Cấu Hình --';
+        } else {
+             loadCustomerNamesAndData(); 
         }
+        
+        document.getElementById('openNewCustomerModal').addEventListener('click', () => {
+            openModal('newCustomerModal');
+            setTimeout(() => { document.getElementById('newCustomerName').focus(); }, 0);
+        });
+        
+        document.getElementById('newCustomerModal').addEventListener('click', (e) => {
+            if (e.target.id === 'newCustomerModal') { closeModal('newCustomerModal'); }
+        });
+    });
 
-        // Khởi tạo
-        loadCustomerList();
-    </script>
-</body>
-</html>
+</script>
