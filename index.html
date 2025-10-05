@@ -3,69 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Google Sheet qua Form</title>
+    <title>Quản lý Thanh toán & Khách hàng</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .container { max-width: 600px; margin: auto; }
-        label { display: block; margin-top: 10px; }
-        input, textarea { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
-        button { padding: 10px 15px; margin-top: 15px; cursor: pointer; }
-        #message { margin-top: 15px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input[type="text"], input[type="number"], textarea, select { 
+            width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; 
+        }
+        button { padding: 10px 15px; margin-top: 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        #message { margin-top: 20px; padding: 15px; border-radius: 4px; font-weight: bold; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flex-group { display: flex; gap: 20px; }
+        .flex-group > div { flex: 1; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Thêm Dữ Liệu Khách Hàng</h1>
-        
-        <form id="dataForm">
-            <label for="ten_kh">Tên KH:</label>
-            <input type="text" id="ten_kh" name="ten_kh" required>
+        <h1>Quản Lý Dịch Vụ Mạng</h1>
 
-            <label for="so_tien">Số tiền:</label>
-            <input type="number" id="so_tien" name="so_tien" required>
+        <button onclick="toggleNewCustomerForm()">+ Thêm Khách Hàng Mới</button>
+        <div id="newCustomerFormContainer" class="hidden">
+            <h2>Thêm Khách Hàng Mới</h2>
+            <form id="addCustomerForm">
+                <input type="hidden" name="action" value="add_customer">
+                <label for="ten_kh_moi">Tên KH (Duy nhất):</label>
+                <input type="text" id="ten_kh_moi" name="ten_kh_moi" required>
+                
+                <label for="goi_cuoc_moi">Gói cước (VNĐ/tháng):</label>
+                <input type="number" id="goi_cuoc_moi" name="goi_cuoc_moi" required>
+                
+                <label for="tien_nop_ban_dau">Tiền nộp ban đầu:</label>
+                <input type="number" id="tien_nop_ban_dau" name="tien_nop_ban_dau" required>
+                
+                <label for="ghi_chu_moi">Ghi chú ban đầu (Địa chỉ, SĐT...):</label>
+                <textarea id="ghi_chu_moi" name="ghi_chu_moi"></textarea>
+                
+                <button type="submit">Xác nhận Thêm Khách Hàng</button>
+            </form>
+        </div>
+
+        <hr>
+
+        <h2>Cập Nhật Thanh Toán</h2>
+        <form id="updatePaymentForm">
+            <input type="hidden" name="action" value="update_payment">
             
-            <label for="han_dung">Hạn dùng (dd/mm/yyyy):</label>
-            <input type="text" id="han_dung" name="han_dung" value="31/12/2025" required>
+            <label for="ten_kh">Chọn Khách Hàng:</label>
+            <select id="ten_kh" name="ten_kh" required onchange="displayCustomerInfo()"></select>
+
+            <div id="customerInfo" style="margin-top: 10px; padding: 10px; border: 1px dashed #ccc; background: #f9f9f9;">
+                <p>Hạn dùng cũ: <span id="old_han_dung">...</span> | Gói cước: <span id="monthly_cost">...</span></p>
+            </div>
+
+            <label for="so_tien">Số tiền khách nộp (VNĐ):</label>
+            <input type="number" id="so_tien" name="so_tien" required oninput="calculateMonths()">
             
-            <label for="goi_cuoc">Gói cước:</label>
-            <input type="number" id="goi_cuoc" name="goi_cuoc" required>
-            
-            <label for="so_thang">Số tháng:</label>
-            <input type="number" id="so_thang" name="so_thang" required>
-            
-            <label for="ghi_chu">Ghi chú:</label>
+            <div class="flex-group">
+                <div>
+                    <label>Số tháng tính được:</label>
+                    <input type="text" id="calculated_months" disabled style="background-color: #e9ecef;">
+                </div>
+                <div>
+                    <label>Hạn dùng mới dự kiến:</label>
+                    <input type="text" id="new_han_dung" disabled style="background-color: #e9ecef;">
+                </div>
+            </div>
+
+            <label for="ghi_chu">Ghi chú (Cập nhật địa chỉ, SĐT...):</label>
             <textarea id="ghi_chu" name="ghi_chu"></textarea>
             
-            <button type="submit">Gửi Dữ Liệu</button>
+            <button type="submit">Xác nhận Nộp Tiền</button>
         </form>
 
         <div id="message"></div>
-
-        <hr/>
-
-        <h2>Dữ Liệu Hiện Có</h2>
-        <button onclick="loadData()">Tải Dữ Liệu</button>
-        <div id="dataOutput"></div>
-
     </div>
 
     <script>
-        // THAY THẾ BẰNG URL WEB APP CỦA BẠN
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwYl9FYnGrSX_-pJTQumGd5VhTmJetmhgwg7EJW7ACZssIqVFUo2WlULOzEj3_wwiaq3w/exec"; 
-        const form = document.getElementById('dataForm');
-        const messageDiv = document.getElementById('message');
-        const dataOutputDiv = document.getElementById('dataOutput');
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzVL8lzR2mZ0gNf9TMYMr54dUgpUCrx0exCM3e_0hKYNTK1vaZh253W9dWFj2xHkc-jDw/exec"; // THAY THẾ BẰNG URL WEB APP CỦA BẠN
+        const customerData = {}; // Lưu trữ dữ liệu khách hàng
 
-        // Hàm GHI (POST) dữ liệu
-        form.addEventListener('submit', async function(e) {
+        // Toggle form thêm khách hàng mới
+        function toggleNewCustomerForm() {
+            const container = document.getElementById('newCustomerFormContainer');
+            container.classList.toggle('hidden');
+        }
+
+        // Tải danh sách khách hàng từ Apps Script
+        async function loadCustomerList() {
+            const select = document.getElementById('ten_kh');
+            select.innerHTML = '<option value="" disabled selected>Đang tải...</option>';
+
+            try {
+                const response = await fetch(WEB_APP_URL, { method: 'GET' });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    select.innerHTML = '<option value="" disabled selected>-- Chọn khách hàng --</option>';
+                    
+                    result.data.forEach(customer => {
+                        select.innerHTML += `<option value="${customer.TênKH}">${customer.TênKH}</option>`;
+                        // Lưu dữ liệu vào biến toàn cục để dùng khi tính toán
+                        customerData[customer.TênKH] = customer; 
+                    });
+                    displayMessage('Tải dữ liệu thành công.', 'success');
+                } else {
+                    displayMessage('Lỗi tải danh sách: ' + result.message, 'error');
+                }
+            } catch (error) {
+                displayMessage('Lỗi kết nối API: ' + error.message, 'error');
+            }
+        }
+
+        // Hiển thị thông tin KH khi chọn
+        function displayCustomerInfo() {
+            const selectedName = document.getElementById('ten_kh').value;
+            const info = customerData[selectedName];
+            
+            if (info) {
+                // Định dạng ngày tháng
+                const hanDungCu = info.HạnDùng ? new Date(info.HạnDùng).toLocaleDateString('vi-VN') : 'N/A';
+                
+                document.getElementById('old_han_dung').textContent = hanDungCu;
+                document.getElementById('monthly_cost').textContent = info.Góicước;
+                document.getElementById('ghi_chu').value = info.Ghichú || '';
+            }
+            calculateMonths(); // Tính toán lại khi đổi KH
+        }
+
+        // Tính toán tự động số tháng và hạn dùng mới
+        function calculateMonths() {
+            const selectedName = document.getElementById('ten_kh').value;
+            const amount = Number(document.getElementById('so_tien').value);
+            const customer = customerData[selectedName];
+
+            const monthsInput = document.getElementById('calculated_months');
+            const dueDateInput = document.getElementById('new_han_dung');
+
+            if (!customer || !amount || isNaN(amount)) {
+                monthsInput.value = '';
+                dueDateInput.value = '';
+                return;
+            }
+
+            const monthlyCost = Number(customer.Góicước);
+            if (!monthlyCost || monthlyCost <= 0) {
+                monthsInput.value = 'Lỗi gói cước';
+                dueDateInput.value = 'Lỗi gói cước';
+                return;
+            }
+
+            const calculatedMonths = amount / monthlyCost;
+            monthsInput.value = calculatedMonths.toFixed(2); // Hiển thị 2 chữ số thập phân
+
+            // Tính hạn dùng mới: Hạn dùng cũ + Số tháng
+            const oldDate = new Date(customer.HạnDùng);
+            const newDate = new Date(oldDate);
+            const daysToAdd = calculatedMonths * (365.25 / 12); 
+            newDate.setDate(newDate.getDate() + daysToAdd);
+            
+            dueDateInput.value = newDate.toLocaleDateString('vi-VN');
+        }
+
+
+        // Xử lý submit form
+        document.getElementById('updatePaymentForm').addEventListener('submit', handleFormSubmit);
+        document.getElementById('addCustomerForm').addEventListener('submit', handleFormSubmit);
+
+        async function handleFormSubmit(e) {
             e.preventDefault();
-            messageDiv.textContent = 'Đang gửi...';
+            const form = e.target;
+            displayMessage('Đang xử lý...', 'info');
 
             const formData = new FormData(form);
             const data = {};
-            // Chuyển FormData sang Object để gửi
+            // Chuyển FormData sang Object
             formData.forEach((value, key) => { data[key] = value; });
 
             try {
@@ -83,75 +199,28 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    messageDiv.textContent = '✅ Ghi dữ liệu thành công! ' + result.message;
+                    displayMessage(`✅ ${result.message}`, 'success');
                     form.reset();
-                    loadData(); // Tải lại dữ liệu sau khi ghi
-                } else {
-                    messageDiv.textContent = '❌ Lỗi: ' + result.message;
-                }
-            } catch (error) {
-                messageDiv.textContent = '❌ Lỗi kết nối: ' + error.message;
-            }
-        });
-
-        // Hàm ĐỌC (GET) dữ liệu
-        async function loadData() {
-            dataOutputDiv.innerHTML = 'Đang tải dữ liệu...';
-            try {
-                const response = await fetch(WEB_APP_URL, { method: 'GET' });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    renderTable(result.data);
-                } else {
-                    dataOutputDiv.innerHTML = '<p style="color: red;">Lỗi tải dữ liệu: ' + result.message + '</p>';
-                }
-
-            } catch (error) {
-                dataOutputDiv.innerHTML = '<p style="color: red;">Lỗi kết nối API: ' + error.message + '</p>';
-            }
-        }
-
-        function renderTable(data) {
-            if (data.length === 0) {
-                dataOutputDiv.innerHTML = '<p>Không có dữ liệu.</p>';
-                return;
-            }
-            
-            let tableHTML = '<table><thead><tr>';
-            const headers = Object.keys(data[0]);
-            
-            // Tạo tiêu đề
-            headers.forEach(h => {
-                // Định dạng lại tiêu đề từ chuẩn JS (TenKH) sang tiếng Việt có dấu
-                const readableHeader = h.replace(/([A-Z])/g, ' $1').trim();
-                tableHTML += `<th>${readableHeader}</th>`;
-            });
-            tableHTML += '</tr></thead><tbody>';
-
-            // Tạo các hàng dữ liệu
-            data.forEach(row => {
-                tableHTML += '<tr>';
-                headers.forEach(h => {
-                    let cellValue = row[h];
-                    // Định dạng lại ngày tháng
-                    if (h === 'Ngày nộp' && cellValue) {
-                        const date = new Date(cellValue);
-                        if (!isNaN(date)) {
-                            cellValue = date.toLocaleString('vi-VN');
-                        }
+                    loadCustomerList(); // Tải lại danh sách sau khi cập nhật/thêm
+                    if (form.id === 'addCustomerForm') {
+                        document.getElementById('newCustomerFormContainer').classList.add('hidden');
                     }
-                    tableHTML += `<td>${cellValue}</td>`;
-                });
-                tableHTML += '</tr>';
-            });
-            
-            tableHTML += '</tbody></table>';
-            dataOutputDiv.innerHTML = tableHTML;
+                } else {
+                    displayMessage(`❌ Lỗi: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                displayMessage(`❌ Lỗi kết nối: ${error.message}`, 'error');
+            }
         }
 
-        // Tải dữ liệu ngay khi trang được load
-        loadData();
+        function displayMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type; // Cập nhật class
+            messageDiv.textContent = text;
+        }
+
+        // Khởi tạo
+        loadCustomerList();
     </script>
 </body>
 </html>
