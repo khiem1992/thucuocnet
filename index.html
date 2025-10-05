@@ -46,7 +46,7 @@
 
         <div id="user-info" class="text-sm text-gray-600 mb-6 p-3 bg-white rounded-lg shadow-sm">
             Kết nối: <span id="user-id-display" class="font-mono bg-green-200 px-2 py-1 rounded">Google Apps Script</span>
-            <p class="mt-2 text-xs text-red-500 font-bold">LƯU Ý: Phải thay thế "YOUR_DEPLOYED_APPS_SCRIPT_URL" trong mã JS.</p>
+            <!-- BỎ THÔNG BÁO LƯU Ý KHI ĐÃ ĐƯỢC CẤU HÌNH -->
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -159,7 +159,7 @@
 
     <!-- JavaScript Logic -->
     <script>
-        // !!! CẦN THAY THẾ URL NÀY SAU KHI TRIỂN KHAI GOOGLE APPS SCRIPT !!!
+        // !!! URL APPS SCRIPT ĐÃ ĐƯỢC DÁN VÀO ĐÂY !!!
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_WGM8E7ohnvEPZGX5J1qD_emqozdwnGsxzJ3R-jBQlzDFsoCTH4VgvZG58SLaeYXpAg/exec'; 
         
         let customersData = {};
@@ -168,31 +168,31 @@
 
         // Utility: Format currency
         const formatCurrency = (amount) => {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+            // Đảm bảo amount là số trước khi format
+            const num = parseFloat(amount);
+            if (isNaN(num)) return '0 VNĐ';
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
         };
         // Utility: Format date
         const formatDate = (date) => {
-             // Expecting date string in YYYY-MM-DD format from Apps Script
-            const d = new Date(date);
-            // We use UTC methods to avoid time zone issues when dealing with dates only
+             // Expecting date string in YYYY-MM-DD format or Date object
+            const d = date instanceof Date ? date : new Date(date);
+            // We use toLocaleDateString to show date in dd/MM/yyyy format (Vietnamese standard)
             return d.toLocaleDateString('vi-VN', { 
                 year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
             });
         };
         // Utility: Parse date from dd/mm/yyyy to YYYY-MM-DD string for internal use
-        const parseDateToISO = (dateStr) => {
-             const [day, month, year] = dateStr.split('/').map(Number);
-             const date = new Date(year, month - 1, day); // month is 0-indexed
-             // Returns YYYY-MM-DD
-             return date.toISOString().split('T')[0];
-        }
+        // Note: This function is currently not strictly needed as date calculation is handled on Date objects after parsing.
+        // const parseDateToISO = (dateStr) => {
+        //      const [day, month, year] = dateStr.split('/').map(Number);
+        //      const date = new Date(year, month - 1, day); // month is 0-indexed
+        //      return date.toISOString().split('T')[0];
+        // }
 
         // --- APPS SCRIPT COMMUNICATION ---
         async function fetchApi(action, method = 'GET', data = null) {
-            if (APPS_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL') {
-                showMessage('Lỗi: Vui lòng thay thế YOUR_DEPLOYED_APPS_SCRIPT_URL bằng URL Apps Script đã triển khai.', 'bg-red-100 text-red-800');
-                throw new Error("Apps Script URL is not configured.");
-            }
+            // Sau khi URL đã dán, không cần check placeholder nữa.
             
             const url = `${APPS_SCRIPT_URL}?action=${action}`;
             
@@ -208,15 +208,20 @@
                     options.body = JSON.stringify(data);
                 }
 
+                // Ghi log để kiểm tra URL được gửi đi
+                console.log(`Đang gửi yêu cầu [${method}] tới: ${url}`);
+                
                 const response = await fetch(url, options);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // Xảy ra lỗi HTTP (ví dụ: 404, 500)
+                    throw new Error(`Lỗi HTTP! Status: ${response.status}. Vui lòng kiểm tra Apps Script đã triển khai đúng chưa.`);
                 }
 
                 const result = await response.json();
                 
                 if (result.status === 'error') {
+                     // Xảy ra lỗi từ code Apps Script
                      throw new Error(result.message);
                 }
                 
@@ -224,6 +229,7 @@
 
             } catch (error) {
                 console.error("Lỗi giao tiếp với Apps Script:", error);
+                // Thông báo lỗi cụ thể cho người dùng
                 showMessage(`Lỗi kết nối hoặc dữ liệu: ${error.message}`, 'bg-red-100 text-red-800');
                 return null;
             }
@@ -246,7 +252,8 @@
                 renderCustomerDropdown();
                 showMessage('Đã tải dữ liệu thành công.', 'bg-green-100 text-green-800');
             } else {
-                 showMessage('Không thể tải dữ liệu khách hàng.', 'bg-red-100 text-red-800');
+                 // Không hiển thị lỗi ở đây, đã hiển thị trong fetchApi
+                 showMessage('Không thể tải dữ liệu khách hàng. Vui lòng kiểm tra Console (F12) để xem lỗi chi tiết.', 'bg-red-100 text-red-800');
             }
 
             isLoading = false;
@@ -351,22 +358,30 @@
 
             // --- Date Calculation Logic (based on old due date from Sheets) ---
             // The dueDate from sheet is dd/mm/yyyy string (e.g., "05/11/2025")
-            const [d, m, y] = customer.dueDate.split('/').map(Number);
+            // Cần chuyển đổi ngày dd/mm/yyyy sang Date object
+            const [d, m, y] = (customer.dueDate || formatDate(new Date())).split('/').map(Number);
             let currentDueDate = new Date(y, m - 1, d); // Date object for calculation
             
-            // If the current due date is in the past, start calculation from TODAY
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            if (currentDueDate < today) {
-                // If expired, start adding from today
-                currentDueDate = today;
-            } else {
-                // If not expired, start adding from the day after the current due date
-                currentDueDate.setDate(currentDueDate.getDate() + 1);
+            // Nếu ngày hết hạn cũ bị lỗi hoặc không xác định, ta lấy ngày hôm nay làm mốc
+            if (isNaN(currentDueDate.getTime())) {
+                currentDueDate = new Date();
             }
             
-            let newDate = new Date(currentDueDate);
+            // Xóa giờ, phút, giây để so sánh chính xác ngày
+            currentDueDate.setHours(0, 0, 0, 0);
+
+            // Ngày bắt đầu tính toán
+            let startDate = new Date();
+            startDate.setHours(0, 0, 0, 0);
+
+            // Nếu hạn dùng cũ chưa hết (lớn hơn hoặc bằng ngày hôm nay)
+            if (currentDueDate >= startDate) {
+                // Thêm 1 ngày để bắt đầu tính từ ngày sau ngày hết hạn cũ
+                startDate = new Date(currentDueDate);
+                startDate.setDate(startDate.getDate() + 1);
+            } 
+            
+            let newDate = new Date(startDate);
             newDate.setMonth(newDate.getMonth() + months);
             
             newDueDateInput.value = formatDate(newDate);
