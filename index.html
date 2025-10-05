@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Khách Hàng Internet (Google Sheet)</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        /* Custom styles for better aesthetics */
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .input-group label {
+            font-weight: 600;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="text-xl font-semibold text-indigo-600">Đang tải dữ liệu...</div>
+    </div>
+    
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 border-b-4 border-indigo-500 pb-2">
+            Hệ Thống Quản Lý Thanh Toán Internet
+        </h1>
+
+        <div id="user-info" class="text-sm text-gray-600 mb-6 p-3 bg-white rounded-lg shadow-sm">
+            Kết nối: <span id="user-id-display" class="font-mono bg-green-200 px-2 py-1 rounded">Google Apps Script</span>
+            <p class="mt-2 text-xs text-red-500 font-bold">LƯU Ý: Phải thay thế "YOUR_DEPLOYED_APPS_SCRIPT_URL" trong mã JS.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Cột 1: Chọn Khách Hàng -->
+            <div class="lg:col-span-1 p-6 bg-white rounded-xl card h-fit">
+                <h2 class="text-2xl font-bold text-indigo-600 mb-4">Chọn Khách Hàng</h2>
+                
+                <div class="mb-4">
+                    <label for="customer-select" class="block text-sm font-medium text-gray-700 mb-1">
+                        Tên Khách Hàng (Cuoc-net)
+                    </label>
+                    <select id="customer-select" 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                            onchange="loadCustomerDetails()">
+                        <option value="" disabled selected>-- Chọn một khách hàng --</option>
+                    </select>
+                </div>
+                
+                <button onclick="addDummyData()" 
+                        class="w-full px-4 py-2 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 transition duration-150 mt-4">
+                    Thêm Dữ Liệu Mẫu (Lần đầu)
+                </button>
+                 <button onclick="loadAllCustomers()" 
+                        class="w-full px-4 py-2 text-sm font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition duration-150 mt-2">
+                    Tải lại Dữ Liệu
+                </button>
+            </div>
+
+            <!-- Cột 2 & 3: Thông tin và Thanh toán -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- Bố cục Thông tin Hiện tại -->
+                <div class="p-6 bg-white rounded-xl card">
+                    <h2 class="text-2xl font-bold text-indigo-600 mb-4 border-b pb-2">Thông Tin Khách Hàng Hiện Tại</h2>
+                    <div id="customer-details" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="input-group">
+                            <label class="block text-gray-700">Gói cước (VNĐ/tháng):</label>
+                            <p id="detail-plan" class="mt-1 text-gray-900 font-semibold text-lg">---</p>
+                        </div>
+                        <div class="input-group">
+                            <label class="block text-gray-700">Hạn dùng cũ (Đến ngày):</label>
+                            <p id="detail-due-date" class="mt-1 text-red-600 font-bold text-lg">---</p>
+                        </div>
+                        <div class="input-group">
+                            <label class="block text-gray-700">Lần nộp tiền trước:</label>
+                            <p id="detail-last-payment" class="mt-1 text-gray-900">---</p>
+                        </div>
+                         <div class="input-group md:col-span-2">
+                            <label class="block text-gray-700">Ghi chú cũ:</label>
+                            <p id="detail-notes" class="mt-1 text-gray-900 bg-gray-100 p-2 rounded-lg">---</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bố cục Ghi nhận Thanh toán Mới -->
+                <div class="p-6 bg-white rounded-xl card">
+                    <h2 class="text-2xl font-bold text-indigo-600 mb-4 border-b pb-2">Ghi Nhận Thanh Toán Mới</h2>
+                    <form id="payment-form" onsubmit="handlePayment(event)">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <!-- Số tiền nộp mới -->
+                            <div class="input-group md:col-span-2">
+                                <label for="payment-amount" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Số tiền nộp mới (VNĐ)
+                                </label>
+                                <input type="number" id="payment-amount" min="0" required
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                                       placeholder="Ví dụ: 300000" oninput="calculateDueDate()">
+                            </div>
+                            
+                            <!-- Số tháng được cộng -->
+                            <div class="input-group">
+                                <label for="months-added" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Số tháng được cộng
+                                </label>
+                                <input type="text" id="months-added" readonly
+                                       class="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg text-lg font-bold text-green-600">
+                            </div>
+                        </div>
+
+                        <!-- Hạn dùng mới và Ghi chú -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Hạn dùng mới (Dự kiến)
+                                </label>
+                                <input type="text" id="new-due-date" readonly
+                                       class="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg text-lg font-bold text-indigo-600">
+                            </div>
+                            <div class="input-group">
+                                <label for="payment-note" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Ghi chú (Tùy chọn)
+                                </label>
+                                <input type="text" id="payment-note"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                                       placeholder="Ghi chú cho lần thanh toán này">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" id="submit-button" disabled
+                                class="w-full btn-primary px-4 py-3 text-lg font-semibold text-white rounded-lg hover:shadow-lg transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Lưu Thanh Toán & Cập Nhật Hạn Dùng
+                        </button>
+                        
+                        <div id="message-box" class="mt-4 p-3 hidden rounded-lg text-center font-medium"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // !!! CẦN THAY THẾ URL NÀY SAU KHI TRIỂN KHAI GOOGLE APPS SCRIPT !!!
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_WGM8E7ohnvEPZGX5J1qD_emqozdwnGsxzJ3R-jBQlzDFsoCTH4VgvZG58SLaeYXpAg/exec'; 
+        
+        let customersData = {};
+        let selectedCustomerId = null;
+        let isLoading = true;
+
+        // Utility: Format currency
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        };
+        // Utility: Format date
+        const formatDate = (date) => {
+             // Expecting date string in YYYY-MM-DD format from Apps Script
+            const d = new Date(date);
+            // We use UTC methods to avoid time zone issues when dealing with dates only
+            return d.toLocaleDateString('vi-VN', { 
+                year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
+            });
+        };
+        // Utility: Parse date from dd/mm/yyyy to YYYY-MM-DD string for internal use
+        const parseDateToISO = (dateStr) => {
+             const [day, month, year] = dateStr.split('/').map(Number);
+             const date = new Date(year, month - 1, day); // month is 0-indexed
+             // Returns YYYY-MM-DD
+             return date.toISOString().split('T')[0];
+        }
+
+        // --- APPS SCRIPT COMMUNICATION ---
+        async function fetchApi(action, method = 'GET', data = null) {
+            if (APPS_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL') {
+                showMessage('Lỗi: Vui lòng thay thế YOUR_DEPLOYED_APPS_SCRIPT_URL bằng URL Apps Script đã triển khai.', 'bg-red-100 text-red-800');
+                throw new Error("Apps Script URL is not configured.");
+            }
+            
+            const url = `${APPS_SCRIPT_URL}?action=${action}`;
+            
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                };
+
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(url, options);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.status === 'error') {
+                     throw new Error(result.message);
+                }
+                
+                return result.data;
+
+            } catch (error) {
+                console.error("Lỗi giao tiếp với Apps Script:", error);
+                showMessage(`Lỗi kết nối hoặc dữ liệu: ${error.message}`, 'bg-red-100 text-red-800');
+                return null;
+            }
+        }
+        
+        // --- DATA LOADING ---
+        window.loadAllCustomers = async function() {
+            isLoading = true;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            showMessage('Đang tải dữ liệu khách hàng...', 'bg-gray-100 text-gray-800');
+            
+            const data = await fetchApi('getCustomers');
+            
+            if (data) {
+                customersData = {};
+                data.forEach(customer => {
+                    // ID is the row number from Google Sheet
+                    customersData[customer.id] = customer;
+                });
+                renderCustomerDropdown();
+                showMessage('Đã tải dữ liệu thành công.', 'bg-green-100 text-green-800');
+            } else {
+                 showMessage('Không thể tải dữ liệu khách hàng.', 'bg-red-100 text-red-800');
+            }
+
+            isLoading = false;
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // --- UI RENDERING FUNCTIONS ---
+        function renderCustomerDropdown() {
+            const selectElement = document.getElementById('customer-select');
+            const currentSelectedId = selectedCustomerId;
+            selectElement.innerHTML = '<option value="" disabled selected>-- Chọn một khách hàng --</option>';
+
+            const customersArray = Object.values(customersData).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+            customersArray.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = `${customer.name} (Gói: ${formatCurrency(customer.currentPlanPrice)})`;
+                selectElement.appendChild(option);
+            });
+
+            if (currentSelectedId && customersData[currentSelectedId]) {
+                selectElement.value = currentSelectedId;
+                loadCustomerDetails(); 
+            } else {
+                 clearCustomerDetails();
+            }
+        }
+
+        function clearCustomerDetails() {
+            document.getElementById('detail-plan').textContent = '---';
+            document.getElementById('detail-due-date').textContent = '---';
+            document.getElementById('detail-last-payment').textContent = '---';
+            document.getElementById('detail-notes').textContent = '---';
+            document.getElementById('submit-button').disabled = true;
+            selectedCustomerId = null;
+        }
+
+        window.loadCustomerDetails = function() {
+            const selectElement = document.getElementById('customer-select');
+            const customerId = selectElement.value;
+            selectedCustomerId = customerId;
+            const customer = customersData[customerId];
+            const submitButton = document.getElementById('submit-button');
+
+            if (!customer) {
+                clearCustomerDetails();
+                return;
+            }
+
+            // Display details (all fields are strings from Sheets, except price is number)
+            document.getElementById('detail-plan').textContent = formatCurrency(customer.currentPlanPrice) + ' / tháng';
+            document.getElementById('detail-due-date').textContent = customer.dueDate || 'Chưa rõ';
+            document.getElementById('detail-last-payment').textContent = customer.lastPaymentDate || 'Chưa có';
+            document.getElementById('detail-notes').textContent = customer.notes || 'Không có ghi chú';
+
+            // Clear payment inputs and enable button
+            document.getElementById('payment-amount').value = '';
+            document.getElementById('months-added').value = '0';
+            document.getElementById('new-due-date').value = customer.dueDate || formatDate(new Date());
+            document.getElementById('payment-note').value = '';
+            submitButton.disabled = false;
+            
+            showMessage('', 'hidden');
+        }
+
+        // --- CORE LOGIC: CALCULATION ---
+        window.calculateDueDate = function() {
+            const customerId = selectedCustomerId;
+            const customer = customersData[customerId];
+            const amountInput = document.getElementById('payment-amount');
+            const monthsAddedInput = document.getElementById('months-added');
+            const newDueDateInput = document.getElementById('new-due-date');
+            
+            if (!customer || !amountInput.value) {
+                monthsAddedInput.value = '0';
+                newDueDateInput.value = customer?.dueDate || formatDate(new Date());
+                return;
+            }
+
+            const amountPaid = parseFloat(amountInput.value);
+            // Plan price is stored as a number in the object by Apps Script
+            const planPrice = customer.currentPlanPrice; 
+
+            if (amountPaid < 0 || isNaN(planPrice) || planPrice <= 0) {
+                 showMessage('Gói cước hoặc số tiền nộp không hợp lệ.', 'bg-red-100 text-red-800');
+                 return;
+            }
+
+            // Calculate months based on plan price
+            const months = Math.floor(amountPaid / planPrice);
+            const remaining = amountPaid % planPrice;
+
+            monthsAddedInput.value = months;
+            
+            if (months <= 0) {
+                newDueDateInput.value = customer.dueDate || formatDate(new Date());
+                showMessage(`Cần nộp tối thiểu ${formatCurrency(planPrice)} để gia hạn 1 tháng.`, 'bg-red-100 text-red-800');
+                return;
+            }
+
+
+            // --- Date Calculation Logic (based on old due date from Sheets) ---
+            // The dueDate from sheet is dd/mm/yyyy string (e.g., "05/11/2025")
+            const [d, m, y] = customer.dueDate.split('/').map(Number);
+            let currentDueDate = new Date(y, m - 1, d); // Date object for calculation
+            
+            // If the current due date is in the past, start calculation from TODAY
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (currentDueDate < today) {
+                // If expired, start adding from today
+                currentDueDate = today;
+            } else {
+                // If not expired, start adding from the day after the current due date
+                currentDueDate.setDate(currentDueDate.getDate() + 1);
+            }
+            
+            let newDate = new Date(currentDueDate);
+            newDate.setMonth(newDate.getMonth() + months);
+            
+            newDueDateInput.value = formatDate(newDate);
+
+            if (remaining > 0) {
+                 showMessage(`Lưu ý: Khách hàng còn dư ${formatCurrency(remaining)}. Số dư này CHƯA được tính vào hạn dùng.`, 'bg-yellow-100 text-yellow-800');
+            } else {
+                showMessage('', 'hidden');
+            }
+        }
+
+        // --- DATA PERSISTENCE: HANDLING PAYMENT ---
+        window.handlePayment = async function(event) {
+            event.preventDefault();
+            const customerId = selectedCustomerId;
+            const customer = customersData[customerId];
+            
+            if (!customer) {
+                showMessage('Vui lòng chọn một khách hàng.', 'bg-red-100 text-red-800');
+                return;
+            }
+
+            const amountPaid = parseFloat(document.getElementById('payment-amount').value);
+            const monthsAdded = parseInt(document.getElementById('months-added').value);
+            const paymentNote = document.getElementById('payment-note').value;
+            const newDueDateStr = document.getElementById('new-due-date').value;
+
+            if (monthsAdded <= 0 || isNaN(amountPaid) || amountPaid <= 0) {
+                 showMessage('Số tiền nộp phải lớn hơn 0 và đủ để gia hạn ít nhất 1 tháng.', 'bg-red-100 text-red-800');
+                 return;
+            }
+            
+            // Disable button during process
+            const submitButton = document.getElementById('submit-button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Đang xử lý...';
+            showMessage('Đang lưu giao dịch...', 'bg-indigo-100 text-indigo-800');
+
+            const paymentData = {
+                id: customerId, // Row ID to update in Cuoc-net
+                customerName: customer.name,
+                planPrice: customer.currentPlanPrice,
+                amountPaid: amountPaid,
+                monthsAdded: monthsAdded,
+                newDueDate: newDueDateStr, // Date string dd/mm/yyyy
+                paymentNote: paymentNote
+            };
+            
+            const result = await fetchApi('processPayment', 'POST', paymentData);
+
+            if (result) {
+                showMessage('Thanh toán thành công! Dữ liệu Google Sheet đã được cập nhật.', 'bg-green-100 text-green-800');
+                // Reload data to reflect changes
+                await loadAllCustomers(); 
+                // Re-select customer to update details display
+                const selectElement = document.getElementById('customer-select');
+                selectElement.value = customerId;
+                loadCustomerDetails();
+            } else {
+                // Error message already shown by fetchApi
+            }
+            
+            submitButton.disabled = false;
+            submitButton.textContent = 'Lưu Thanh Toán & Cập Nhật Hạn Dùng';
+        }
+        
+        // --- DUMMY DATA INITIALIZATION ---
+        window.addDummyData = async function() {
+            if (Object.keys(customersData).length > 0) {
+                showMessage('Dữ liệu đã có. Không cần thêm mẫu.', 'bg-yellow-100 text-yellow-800');
+                return;
+            }
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const expired = new Date();
+            expired.setDate(expired.getDate() - 5);
+
+            const initialCustomers = [
+                {
+                    name: "Nguyễn Văn A",
+                    planPrice: 200000,
+                    dueDate: formatDate(tomorrow),
+                    notes: "Khách hàng mới. Ưu đãi 1 tháng đầu."
+                },
+                {
+                    name: "Trần Thị B",
+                    planPrice: 150000,
+                    dueDate: formatDate(expired), // Expired 5 days ago
+                    notes: "Khách hàng thân thiết."
+                },
+                {
+                    name: "Lê Văn C",
+                    planPrice: 350000,
+                    dueDate: formatDate(tomorrow),
+                    notes: "Gói tốc độ cao."
+                }
+            ];
+
+            showMessage('Đang thêm dữ liệu mẫu...', 'bg-indigo-100 text-indigo-800');
+            const result = await fetchApi('addDummyData', 'POST', { customers: initialCustomers });
+
+            if (result) {
+                showMessage('Đã thêm 3 khách hàng mẫu thành công!', 'bg-green-100 text-green-800');
+                await loadAllCustomers();
+            } 
+            // Error message already shown by fetchApi
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function showMessage(text, className) {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = text;
+            msgBox.className = `mt-4 p-3 rounded-lg text-center font-medium ${className}`;
+            if (className === 'hidden') {
+                msgBox.classList.add('hidden');
+            } else {
+                 msgBox.classList.remove('hidden');
+            }
+        }
+        
+        // Initial data load
+        window.onload = () => {
+             loadAllCustomers();
+        };
+        
+    </script>
+</body>
+</html>
