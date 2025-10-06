@@ -1,164 +1,327 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PHIẾU THU INTERNET</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex justify-center items-center p-4">
-  <div class="bg-white rounded-2xl shadow-lg max-w-2xl w-full p-6 space-y-6">
-    <h1 class="text-2xl font-bold text-center text-blue-700 mb-4">PHIẾU THU INTERNET</h1>
+<body class="bg-slate-50 min-h-screen flex items-start justify-center py-10">
+  <div class="w-full max-w-3xl px-4">
+    <h1 class="text-center text-2xl font-extrabold mb-6 text-slate-800">PHIẾU THU INTERNET</h1>
 
-    <!-- KHỐI 1: Chọn khách hàng -->
-    <div class="p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-      <label class="font-semibold text-gray-700">1. Chọn Khách Hàng</label>
-      <div class="flex gap-2">
-        <select id="customerSelect" class="flex-1 border rounded-lg p-2 focus:ring-2 focus:ring-blue-500"></select>
-        <button id="addCustomerBtn" class="bg-green-500 text-white rounded-lg px-3 text-lg">+</button>
-      </div>
-      <p id="customerInfo" class="text-sm text-gray-500"></p>
-    </div>
+    <!-- Card -->
+    <div class="bg-white rounded-2xl shadow p-5 space-y-4">
 
-    <!-- KHỐI 2: Cập nhật thanh toán -->
-    <div class="p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-      <label class="font-semibold text-gray-700">2. Cập Nhật Thanh Toán</label>
-
-      <div>
-        <label class="block text-gray-700 mb-1">Số Tiền Khách Hàng Nộp (VNĐ)</label>
-        <input type="text" id="amountInput" placeholder="VD: 800000" class="border rounded-lg w-full p-2 font-bold text-lg text-blue-700 focus:ring-2 focus:ring-blue-500">
-        <p id="monthsDisplay" class="text-sm text-gray-600 mt-1"></p>
-      </div>
-
-      <div class="flex justify-between items-center">
-        <div>
-          <p class="font-semibold text-gray-700">Hạn Dùng Mới (dự kiến):</p>
-          <p id="newExpiry" class="font-bold text-green-600 text-lg"></p>
+      <!-- KHỐI 1: chọn KH -->
+      <div class="rounded-xl p-4 border">
+        <label class="text-sm font-medium text-slate-700">1. Chọn Khách Hàng</label>
+        <div class="flex items-center gap-3 mt-3">
+          <select id="customerSelect" class="flex-1 border rounded-lg px-3 py-2">
+            <option value="">-- Đang tải danh sách... --</option>
+          </select>
+          <button id="btnOpenAdd" title="Thêm khách hàng" class="w-10 h-10 rounded-lg bg-emerald-500 text-white text-xl flex items-center justify-center shadow">+</button>
         </div>
+        <p id="packageInfo" class="text-xs text-slate-500 mt-2"></p>
+      </div>
+
+      <!-- KHỐI 2: thanh toán -->
+      <div id="paymentCard" class="rounded-xl p-4 border hidden space-y-3">
+        <label class="text-sm font-medium text-slate-700">2. Cập nhật thanh toán</label>
+
         <div>
-          <p class="text-sm text-gray-500">Hạn dùng cũ:</p>
-          <p id="oldExpiry" class="font-bold text-orange-500"></p>
+          <label class="block text-xs text-slate-600">Số tiền KH nộp</label>
+          <input id="amount" inputmode="numeric" placeholder="Ví dụ: 800000" class="w-full border rounded-lg px-3 py-2 font-semibold text-lg text-sky-700" />
+          <div class="flex justify-between items-center mt-2 text-sm">
+            <div id="monthsInfo" class="text-slate-700 font-medium">Số tháng: -</div>
+            <div id="newExpiry" class="text-green-600 font-semibold">Hạn dùng mới: -</div>
+          </div>
+          <div class="mt-1 text-xs text-slate-400">Chú ý: các giá trị 500.000 / 700.000 / 800.000 / 1.000.000 => +12 tháng.</div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-600">Ghi chú (mới)</label>
+          <input id="note" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Ghi chú ngắn..." />
+        </div>
+
+        <button id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold">✉️ Xác Nhận Nộp Tiền</button>
+      </div>
+
+      <!-- KHỐI 3: lịch sử gần nhất -->
+      <div id="historyCard" class="rounded-xl p-4 border hidden space-y-2">
+        <label class="text-sm font-medium text-slate-700">3. Lịch sử gần nhất</label>
+        <div class="text-sm text-slate-700">
+          <div>Hạn dùng cũ: <span id="oldExpiry" class="font-semibold text-orange-500">-</span></div>
+          <div>Ngày nộp (lần trước): <span id="lastPaidDate" class="font-semibold">-</span></div>
+          <div>Số tiền nộp trước: <span id="lastAmount" class="font-semibold">-</span></div>
+          <div>Ghi chú cũ: <span id="lastNote" class="text-slate-600 italic">-</span></div>
         </div>
       </div>
 
-      <div>
-        <label class="block text-gray-700 mb-1">Ghi Chú (Mới)</label>
-        <textarea id="noteInput" rows="2" class="border rounded-lg w-full p-2"></textarea>
-      </div>
-    </div>
-
-    <!-- KHỐI 3: Lịch sử gần nhất -->
-    <div class="p-4 rounded-xl border border-gray-200 shadow-sm space-y-2">
-      <label class="font-semibold text-gray-700">3. Lịch Sử Gần Nhất</label>
-      <p>Ngày nộp gần nhất: <span id="lastPaidDate" class="font-semibold text-gray-700"></span></p>
-      <p>Số tiền nộp trước: <span id="lastAmount" class="font-semibold text-gray-700"></span></p>
-      <p>Ghi chú cũ: <span id="lastNote" class="text-gray-600 italic"></span></p>
-    </div>
-
-    <!-- Nút xác nhận -->
-    <button id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">
-      💾 Xác Nhận Nộp Tiền
-    </button>
-
-    <p id="resultMessage" class="text-center mt-2 font-semibold"></p>
-  </div>
-
-  <!-- Modal Thêm Khách Hàng -->
-  <div id="customerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white rounded-xl p-6 w-96 space-y-4 relative">
-      <h2 class="text-lg font-bold">Thêm Khách Hàng Mới</h2>
-      <button id="closeModal" class="absolute top-2 right-3 text-gray-500 text-xl">&times;</button>
-
-      <input id="newName" placeholder="Tên Khách Hàng (*)" class="border rounded-lg w-full p-2">
-      <input id="newPlan" placeholder="Gói Cước (VNĐ/tháng) (*)" class="border rounded-lg w-full p-2">
-      <input id="newDeposit" placeholder="Tiền Nộp Ban Đầu (*)" class="border rounded-lg w-full p-2">
-      <input id="newExpiryDate" placeholder="Hạn Dùng (dd/mm/yyyy) (*)" class="border rounded-lg w-full p-2">
-      <textarea id="newNote" placeholder="Ghi chú" class="border rounded-lg w-full p-2"></textarea>
-
-      <button id="saveCustomerBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg">Thêm Khách Hàng</button>
+      <!-- Kết quả -->
+      <div id="result" class="hidden p-3 rounded-lg"></div>
     </div>
   </div>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwpiDgvnwp4qwhjqjlFByreTo9OU8yzLhZf_pm0T0g2oA1V-DBBRzy_odMbHyDtBKjI/exec"; // ⚠️ Thay bằng link Web App Google Script
+  <!-- Loading overlay (đẹp mắt đơn giản) -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-white/80 flex flex-col items-center justify-center z-50">
+    <div class="flex items-center gap-4">
+      <svg class="animate-spin h-12 w-12 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 11-8 8z"></path>
+      </svg>
+      <div>
+        <div class="text-lg font-medium text-slate-700">Đang tải dữ liệu...</div>
+        <div class="text-sm text-slate-500">Vui lòng chờ vài giây</div>
+      </div>
+    </div>
+  </div>
 
-    async function loadCustomers() {
-      const res = await fetch(API_URL + "?action=getCustomers");
-      const data = await res.json();
-      const select = document.getElementById("customerSelect");
-      select.innerHTML = data.map(c => `<option value="${c.name}" data-plan="${c.plan}" data-expiry="${c.expiry}" data-last="${c.last}" data-lastAmount="${c.lastAmount}" data-lastNote="${c.lastNote}">${c.name}</option>`).join("");
-      select.dispatchEvent(new Event("change"));
-    }
+  <!-- Modal thêm khách hàng -->
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center z-60">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="relative bg-white rounded-2xl w-[420px] shadow-xl p-5 z-50">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Thêm Khách Hàng Mới</h3>
+        <button id="btnCloseModal" class="text-slate-500 text-2xl">&times;</button>
+      </div>
 
-    function formatCurrency(num) {
-      return Number(num).toLocaleString("vi-VN");
-    }
+      <div class="space-y-3">
+        <label class="text-xs text-slate-600">Tên Khách Hàng (*)</label>
+        <input id="new_name" class="w-full border rounded-lg px-3 py-2" />
+        <label class="text-xs text-slate-600">Gói Cước (VNĐ/tháng) (*)</label>
+        <input id="new_plan" class="w-full border rounded-lg px-3 py-2" />
+        <label class="text-xs text-slate-600">Tiền Nộp Ban Đầu (*)</label>
+        <input id="new_deposit" class="w-full border rounded-lg px-3 py-2" />
+        <label class="text-xs text-slate-600">Hạn Dùng (dd/mm/yyyy) (*)</label>
+        <input id="new_expiry" placeholder="VD: 31/12/2025" class="w-full border rounded-lg px-3 py-2" />
+        <label class="text-xs text-slate-600">Ghi Chú</label>
+        <textarea id="new_note" class="w-full border rounded-lg px-3 py-2 text-sm" rows="3"></textarea>
 
-    document.getElementById("customerSelect").addEventListener("change", e => {
-      const opt = e.target.selectedOptions[0];
-      document.getElementById("customerInfo").innerText = `Gói cước: ${formatCurrency(opt.dataset.plan)} VNĐ/tháng`;
-      document.getElementById("oldExpiry").innerText = opt.dataset.expiry;
-      document.getElementById("lastPaidDate").innerText = opt.dataset.last || "Không có";
-      document.getElementById("lastAmount").innerText = opt.dataset.lastAmount ? formatCurrency(opt.dataset.lastAmount) + " đ" : "Không có";
-      document.getElementById("lastNote").innerText = opt.dataset.lastNote || "Không có";
+        <button id="btnSaveCustomer" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-semibold">Thêm Khách Hàng</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =================== CONFIG =================== */
+const API_URL = "https://script.google.com/macros/s/AKfycbxp1KaesOhaUD1lO8yY39RrPwaiG5zeZHz4WW2ry59GWmvNPiRAlMH3pJM81nUS-nuY/exec"; // ← Thay bằng URL Web App của bạn
+/* ============================================== */
+
+let customers = []; // cache
+
+const $ = id => document.getElementById(id);
+const loadingOverlay = $('loadingOverlay');
+const customerSelect = $('customerSelect');
+const packageInfo = $('packageInfo');
+const paymentCard = $('paymentCard');
+const historyCard = $('historyCard');
+const resultBox = $('result');
+
+const amountInput = $('amount');
+const monthsInfo = $('monthsInfo');
+const newExpiryEl = $('newExpiry');
+const noteInput = $('note');
+
+const oldExpiryEl = $('oldExpiry');
+const lastPaidDateEl = $('lastPaidDate');
+const lastAmountEl = $('lastAmount');
+const lastNoteEl = $('lastNote');
+
+const modal = $('modal');
+const btnOpenAdd = $('btnOpenAdd');
+const btnCloseModal = $('btnCloseModal');
+const btnSaveCustomer = $('btnSaveCustomer');
+
+/* ----- Helpers ----- */
+function q(format = '', ...args) { return format.replace(/{(\d+)}/g,(m,i)=>args[i]||''); }
+function parseNumber(v){ if(!v) return 0; return Number(String(v).replace(/[^\d]/g,'')) || 0; }
+function formatVN(n){ if(n===null||n===undefined||n==='') return ''; return Number(n).toLocaleString('vi-VN'); }
+function lastDayOfMonth(year, monthZeroBased){
+  return new Date(year, monthZeroBased+1, 0);
+}
+function addMonthsToDate(dateObj, months){
+  const d = new Date(dateObj);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  // ensure not overflow: if day > lastDay -> set to last day
+  const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  if (day > last) d.setDate(last);
+  return d;
+}
+function toDDMMYYYY(d){
+  if(!d) return '';
+  const day = String(d.getDate()).padStart(2,'0');
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+function parseDDMMYYYY(s){
+  if(!s) return null;
+  const parts = String(s).split('/');
+  if(parts.length !== 3) return new Date(s);
+  const d = Number(parts[0]), m = Number(parts[1])-1, y = Number(parts[2]);
+  return new Date(y,m,d);
+}
+
+/* ----- Load all customers on start ----- */
+async function loadAllCustomers(){
+  loadingOverlay.style.display = 'flex';
+  try{
+    const res = await fetch(`${API_URL}?action=getCustomers`);
+    const data = await res.json();
+    // expected data: array of objects: {name, plan, prevAmount, expiry, lastPayDate, note}
+    customers = data || [];
+
+    // populate select
+    customerSelect.innerHTML = `<option value="">-- Chọn Tên Khách Hàng --</option>`;
+    customers.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = c.name;
+      customerSelect.appendChild(opt);
     });
 
-    document.getElementById("amountInput").addEventListener("input", () => {
-      const select = document.getElementById("customerSelect");
-      const plan = parseInt(select.selectedOptions[0].dataset.plan);
-      const amount = parseInt(document.getElementById("amountInput").value.replace(/\D/g, "")) || 0;
-      const months = Math.floor(amount / plan);
-      document.getElementById("monthsDisplay").innerText = `≈ ${months} tháng`;
-      
-      // Quy tắc đặc biệt
-      const special = [500000,700000,800000,1000000];
-      const addMonths = special.includes(amount) ? 12 : months;
-      const oldDate = new Date();
-      oldDate.setMonth(oldDate.getMonth() + addMonths + 1, 0);
-      document.getElementById("newExpiry").innerText = oldDate.toLocaleDateString("vi-VN");
+    // hide loading
+    loadingOverlay.style.display = 'none';
+    packageInfo.textContent = customers.length ? `Đã tải ${customers.length} khách hàng` : 'Chưa có khách hàng';
+  }catch(err){
+    loadingOverlay.style.display = 'none';
+    packageInfo.textContent = 'Lỗi khi tải danh sách. Kiểm tra API_URL.';
+    console.error(err);
+    alert('Không thể tải danh sách khách hàng. Kiểm tra API URL hoặc quyền truy cập web app.');
+  }
+}
+
+/* ----- When select changes ----- */
+customerSelect.addEventListener('change', () => {
+  const name = customerSelect.value;
+  if(!name){
+    paymentCard.classList.add('hidden');
+    historyCard.classList.add('hidden');
+    packageInfo.textContent = '';
+    return;
+  }
+  const c = customers.find(x => x.name === name);
+  if(!c) return;
+  packageInfo.textContent = `Gói cước: ${formatVN(c.plan)} VNĐ/tháng`;
+  // fill history panel (hạn cũ, last paid, prev amount, note)
+  oldExpiryEl.textContent = c.expiry || '-';
+  lastPaidDateEl.textContent = c.lastPayDate || '-';
+  lastAmountEl.textContent = c.prevAmount ? formatVN(c.prevAmount) + ' đ' : '-';
+  lastNoteEl.textContent = c.note || '-';
+  paymentCard.classList.remove('hidden');
+  historyCard.classList.remove('hidden');
+
+  // reset inputs
+  amountInput.value = '';
+  noteInput.value = '';
+  monthsInfo.textContent = 'Số tháng: -';
+  newExpiryEl.textContent = 'Hạn dùng mới: -';
+});
+
+/* ----- Compute months & new expiry when typing amount ----- */
+amountInput.addEventListener('input', () => {
+  const raw = parseNumber(amountInput.value);
+  // format input visually: preserve caret would be complex; keep simple
+  amountInput.value = raw ? formatVN(raw) : '';
+  const name = customerSelect.value;
+  if(!name) return;
+  const c = customers.find(x => x.name === name);
+  if(!c) return;
+  const plan = parseNumber(c.plan) || 1;
+  // special values
+  const specials = [500000,700000,800000,1000000];
+  let months = specials.includes(raw) ? 12 : Math.floor(raw / plan);
+  if(months < 0) months = 0;
+  monthsInfo.textContent = `Số tháng: ${months}`;
+
+  // compute new expiry: base from old expiry if exists else today
+  let baseDate = parseDDMMYYYY(c.expiry) || new Date();
+  // if old expiry is in past and days empty, use today instead
+  const newDate = addMonthsToDate(baseDate, months);
+  // ensure newDate is last day of month: for requirement "always last day of that month"
+  const last = lastDayOfMonth(newDate.getFullYear(), newDate.getMonth());
+  newExpiryEl.textContent = 'Hạn dùng mới: ' + toDDMMYYYY(last);
+});
+
+/* ----- Submit payment ----- */
+$('btnSubmit').addEventListener('click', async function(){
+  const name = customerSelect.value;
+  if(!name) { alert('Vui lòng chọn khách hàng'); return; }
+  const rawAmount = parseNumber(amountInput.value);
+  if(!rawAmount || rawAmount <= 0){ alert('Nhập số tiền hợp lệ'); return; }
+  const note = noteInput.value || '';
+  const newExpiryText = newExpiryEl.textContent.replace('Hạn dùng mới: ','') || '';
+
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang xử lý...';
+
+  try{
+    const body = { action:'updatePayment', name, amount: rawAmount, note, newExpiry: newExpiryText };
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
     });
+    const json = await res.json();
+    // show message
+    resultBox.classList.remove('hidden');
+    resultBox.className = 'mt-4 p-3 rounded-lg bg-green-50 border border-green-200';
+    resultBox.innerHTML = `<div class="font-medium text-green-700">✅ Đã nộp tiền cho "${name}"</div>
+      <div class="text-sm text-slate-700 mt-1">Hạn dùng mới: <strong>${body.newExpiry || json.newExpiry || '-'}</strong></div>`;
+    // reload cache and reselect
+    await loadAllCustomers();
+    customerSelect.value = name;
+    customerSelect.dispatchEvent(new Event('change'));
+  }catch(err){
+    console.error(err);
+    alert('Lỗi khi gửi dữ liệu lên server');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '✉️ Xác Nhận Nộp Tiền';
+  }
+});
 
-    // Modal logic
-    const modal = document.getElementById("customerModal");
-    document.getElementById("addCustomerBtn").onclick = () => modal.classList.remove("hidden");
-    document.getElementById("closeModal").onclick = () => modal.classList.add("hidden");
+/* ----- Modal add customer ----- */
+btnOpenAdd.addEventListener('click', ()=> modal.classList.remove('hidden'));
+btnCloseModal.addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    // Submit khách hàng mới
-    document.getElementById("saveCustomerBtn").onclick = async () => {
-      const name = newName.value.trim();
-      const plan = newPlan.value;
-      const deposit = newDeposit.value;
-      const expiry = newExpiryDate.value;
-      const note = newNote.value;
-      if (!name || !plan || !deposit || !expiry) return alert("Vui lòng nhập đủ thông tin!");
-      const body = {action: "addCustomer", name, plan, deposit, expiry, note};
-      const btn = document.getElementById("saveCustomerBtn");
-      btn.innerText = "⏳ Đang xử lý..."; btn.disabled = true;
-      const res = await fetch(API_URL, {method: "POST", body: JSON.stringify(body)});
-      const data = await res.json();
-      alert(`✅ Đã thêm khách hàng ${name}`);
-      btn.innerText = "Thêm Khách Hàng"; btn.disabled = false; modal.classList.add("hidden");
-      loadCustomers();
-    };
+btnSaveCustomer.addEventListener('click', async ()=>{
+  const name = $('new_name').value.trim();
+  const plan = parseNumber($('new_plan').value);
+  const deposit = parseNumber($('new_deposit').value);
+  const expiry = $('new_expiry').value.trim();
+  const note = $('new_note').value.trim();
+  if(!name || !plan || !deposit || !expiry){ alert('Nhập đầy đủ: tên, gói, tiền, hạn dùng'); return; }
 
-    // Submit nộp tiền
-    document.getElementById("submitBtn").onclick = async () => {
-      const name = document.getElementById("customerSelect").value;
-      const amount = document.getElementById("amountInput").value.replace(/\D/g, "");
-      const note = document.getElementById("noteInput").value;
-      const newExpiry = document.getElementById("newExpiry").innerText;
-      if (!name || !amount) return alert("Vui lòng nhập đầy đủ thông tin!");
-      const btn = document.getElementById("submitBtn");
-      btn.innerText = "⏳ Đang xử lý..."; btn.disabled = true;
-      const body = {action: "updatePayment", name, amount, note, newExpiry};
-      const res = await fetch(API_URL, {method: "POST", body: JSON.stringify(body)});
-      const data = await res.json();
-      document.getElementById("resultMessage").innerText = `✅ Đã nộp tiền cho ${name}, hạn sử dụng mới đến ${newExpiry}`;
-      btn.innerText = "💾 Xác Nhận Nộp Tiền"; btn.disabled = false;
-      loadCustomers();
-    };
+  const btn = btnSaveCustomer;
+  btn.disabled = true; btn.textContent = '⏳ Đang tạo...';
+  try{
+    const payload = { action:'addCustomer', name, plan, deposit, expiry, note };
+    const res = await fetch(API_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    // reload and select new
+    await loadAllCustomers();
+    // select created if exists
+    customerSelect.value = name;
+    customerSelect.dispatchEvent(new Event('change'));
+    modal.classList.add('hidden');
+  }catch(err){
+    console.error(err);
+    alert('Lỗi khi tạo khách hàng');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Thêm Khách Hàng';
+    // clear modal fields
+    $('new_name').value=''; $('new_plan').value=''; $('new_deposit').value=''; $('new_expiry').value=''; $('new_note').value='';
+  }
+});
 
-    loadCustomers();
-  </script>
+/* ----- Init ----- */
+loadAllCustomers();
+</script>
 </body>
 </html>
