@@ -1,273 +1,595 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PHIẾU THU INTERNET</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#10b981', // xanh lá dịu
-            'secondary': '#f0fdf4',
-            'accent': '#065f46',
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHIẾU THU INTERNET</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tùy chỉnh font Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
         }
-      }
-    }
-  </script>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f8fafc;
-    }
-    select {
-      appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 0.7rem center;
-      background-size: 1.2rem;
-    }
-  </style>
+        /* Style cho dropdown có thể đẹp hơn */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem top 50%;
+            background-size: 1.5rem 1.5rem;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#10b981', // green-500
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-
 <body class="p-4 md:p-8 flex justify-center min-h-screen">
-  <div class="w-full max-w-2xl space-y-6">
-    <h1 class="text-3xl font-extrabold text-center text-gray-800 border-b-4 border-primary/60 pb-3">
-      PHIẾU THU INTERNET
-    </h1>
+    <div class="w-full max-w-xl">
+        <h1 class="text-3xl font-extrabold text-gray-800 text-center mb-6 py-2 border-b-2 border-primary-blue/50">
+            PHIẾU THU INTERNET
+        </h1>
 
-    <!-- Thanh thông báo -->
-    <div id="status-message"
-         class="fixed top-0 left-0 right-0 p-4 text-center z-50 transition-all duration-300 transform -translate-y-full"></div>
+        <!-- Notification Bar (Loading, Success) -->
+        <div id="status-message" class="fixed top-0 left-0 right-0 p-4 text-center z-50 transition-all duration-300 transform -translate-y-full"></div>
 
-    <!-- KHỐI 1 -->
-    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-      <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        <span class="w-2 h-2 bg-primary rounded-full mr-2"></span>1. Chọn Khách Hàng
-      </h2>
-      <div class="flex items-center gap-3">
-        <div class="flex-grow">
-          <label class="block text-sm text-gray-500 mb-1">Tên Khách Hàng</label>
-          <select id="customer-select"
-                  onchange="handleCustomerChange(event)"
-                  class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-gray-900 focus:ring-primary focus:border-primary">
-            <option value="">-- Chọn Khách Hàng --</option>
-          </select>
+        <!-- Main Form Container -->
+        <div id="main-content" class="space-y-6">
+            <!-- Khối 1: Chọn khách hàng -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">1. Chọn Khách Hàng</h2>
+                
+                <div class="flex items-center space-x-3">
+                    <div class="flex-grow relative">
+                        <label for="customer-select" class="block text-sm font-medium text-gray-500 mb-1">Tên Khách Hàng</label>
+                        <select id="customer-select" onchange="handleCustomerChange(event)"
+                                class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-primary-blue focus:border-primary-blue p-3 shadow-inner cursor-pointer transition-colors duration-200">
+                            <option value="">-- Chọn Khách Hàng --</option>
+                        </select>
+                    </div>
+                    <button id="btn-add-customer" onclick="openNewCustomerModal()"
+                            class="mt-6 p-3 w-10 h-10 flex items-center justify-center text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-md transition-transform transform hover:scale-105 active:scale-95"
+                            title="Thêm Khách Hàng Mới">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </button>
+                </div>
+
+                <p id="current-tariff" class="text-xs text-gray-500 mt-2 italic h-4">
+                    <!-- Gói cước sẽ hiển thị ở đây -->
+                </p>
+            </div>
+
+            <!-- Khối 2: Cập nhật thanh toán -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">2. Cập Nhật Thanh Toán</h2>
+                
+                <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
+                    <!-- Số tiền nộp -->
+                    <div class="mb-4">
+                        <label for="amount-paid" class="block text-sm font-medium text-gray-500 mb-1">Số Tiền Nộp (VNĐ)</label>
+                        <input type="text" id="amount-paid" placeholder="Nhập số tiền" required
+                               oninput="formatAndCalculate(this)"
+                               class="w-full bg-primary-blue/10 border border-primary-blue/50 text-gray-900 text-lg font-bold rounded-lg focus:ring-primary-blue focus:border-primary-blue p-3 shadow-md transition-colors duration-200"
+                               pattern="[0-9.,]+"
+                        >
+                    </div>
+
+                    <!-- Hạn dùng mới (dự kiến) -->
+                    <div id="projected-expiry-info" class="p-3 bg-yellow-100 rounded-lg shadow-inner mb-4">
+                        <p class="text-sm font-medium text-gray-600">Số tháng mới (dự kiến): <span id="new-months" class="font-bold text-lg text-primary-blue">0</span> tháng</p>
+                        <p class="text-sm font-medium text-gray-600">Hạn dùng mới (dự kiến): <span id="new-expiry-date" class="font-bold text-lg text-primary-blue">--/--/----</span></p>
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div class="mb-6">
+                        <label for="payment-note" class="block text-sm font-medium text-gray-500 mb-1">Ghi Chú</label>
+                        <textarea id="payment-note" rows="2" placeholder="Ghi chú giao dịch"
+                                  class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-primary-blue focus:border-primary-blue p-2 shadow-inner"></textarea>
+                    </div>
+
+                    <!-- Hidden fields for API -->
+                    <input type="hidden" id="selected-customer-name">
+                    <input type="hidden" id="selected-customer-index">
+                    <input type="hidden" id="selected-customer-tariff">
+                    <input type="hidden" id="selected-customer-promo">
+
+                    <!-- Nút Xác Nhận Nộp Tiền -->
+                    <button type="submit" id="btn-confirm-payment" disabled
+                            class="w-full text-white bg-primary-blue hover:bg-green-700 font-medium rounded-lg text-lg px-5 py-2.5 text-center shadow-md transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed">
+                        Xác Nhận Nộp Tiền
+                    </button>
+                </form>
+            </div>
+
+            <!-- Khối 3: Lịch sử gần nhất -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">3. Lịch Sử Gần Nhất</h2>
+                <div id="history-details" class="space-y-2 text-sm text-gray-600">
+                    <p>Hạn dùng gần nhất: <span id="h-expiry" class="font-bold text-base text-red-500">--/--/----</span></p>
+                    <p>Ngày nộp (lần trước): <span id="h-last-paid-date">--:-- --/--/----</span></p>
+                    <p>Số tiền nộp trước: <span id="h-last-paid-amount">0 VNĐ</span></p>
+                    <p>Giá khuyến mại: <span id="h-promo">0 VNĐ/12 tháng</span></p>
+                    <p>Ghi chú (Cuoc-net): <span id="h-note" class="italic">Chưa có ghi chú.</span></p>
+                </div>
+            </div>
         </div>
-        <button id="btn-add-customer" onclick="openNewCustomerModal()"
-                class="mt-6 p-3 rounded-xl bg-primary text-white hover:bg-green-700 shadow-md transition transform hover:scale-105 active:scale-95"
-                title="Thêm khách hàng mới">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
-               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
-        </button>
-      </div>
-      <p id="current-tariff" class="text-sm text-gray-500 mt-2 italic"></p>
     </div>
 
-    <!-- KHỐI 2 -->
-    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-      <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        <span class="w-2 h-2 bg-primary rounded-full mr-2"></span>2. Cập Nhật Thanh Toán
-      </h2>
-      <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
-        <label class="block text-sm text-gray-500 mb-1">Số Tiền Nộp (VNĐ)</label>
-        <input type="text" id="amount-paid" required placeholder="Nhập số tiền"
-               oninput="formatAndCalculate(this)"
-               class="w-full bg-primary/10 border border-primary/30 rounded-lg p-3 text-lg font-semibold text-gray-800 focus:ring-primary focus:border-primary mb-4">
+    <!-- Modal Thêm Khách Hàng Mới -->
+    <div id="new-customer-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50" onclick="closeNewCustomerModal()">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Tạo Khách Hàng Mới</h3>
+            <form id="new-customer-form" onsubmit="handleNewCustomerSubmit(event)">
+                <div class="mb-4">
+                    <label for="new-customer-name" class="block text-sm font-medium text-gray-500 mb-1">Tên Khách Hàng</label>
+                    <input type="text" id="new-customer-name" required placeholder="Nhập tên khách hàng"
+                           class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-primary-blue focus:border-primary-blue">
+                </div>
+                
+                <!-- Gói Cước/Giá Thu (Định dạng tiền tệ) -->
+                <div class="mb-4">
+                    <label for="new-customer-tariff" class="block text-sm font-medium text-gray-500 mb-1">Gói Cước/Giá Thu (VNĐ)</label>
+                    <input type="text" id="new-customer-tariff" required placeholder="VD: 100.000"
+                           oninput="formatCurrencyInput(this)"
+                           class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-primary-blue focus:border-primary-blue">
+                </div>
 
-        <div id="projected-expiry-info" class="bg-yellow-100 p-3 rounded-lg mb-4">
-          <p class="text-sm text-gray-700">Số tháng mới (dự kiến):
-            <span id="new-months" class="font-bold text-primary text-lg">0</span> tháng
-          </p>
-          <p class="text-sm text-gray-700">Hạn dùng mới (dự kiến):
-            <span id="new-expiry-date" class="font-bold text-primary text-lg">--/--/----</span>
-          </p>
+                <!-- Giá 12 tháng (Khuyến mại) (Định dạng tiền tệ) -->
+                <div class="mb-4">
+                    <label for="new-customer-promo" class="block text-sm font-medium text-gray-500 mb-1">Giá 12 tháng (Khuyến mại) (VNĐ)</label>
+                    <input type="text" id="new-customer-promo" placeholder="VD: 1.000.000 (Tùy chọn)"
+                           oninput="formatCurrencyInput(this)"
+                           class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-primary-blue focus:border-primary-blue">
+                </div>
+                
+                <!-- Số tiền nộp ban đầu (Định dạng tiền tệ) -->
+                <div class="mb-4">
+                    <label for="new-customer-initial-payment" class="block text-sm font-medium text-gray-500 mb-1">Số tiền nộp ban đầu (VNĐ)</label>
+                    <input type="text" id="new-customer-initial-payment" placeholder="VD: 200.000 (Tùy chọn)" value="0"
+                           oninput="formatCurrencyInput(this)"
+                           class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-primary-blue focus:border-primary-blue">
+                </div>
+                
+                <!-- Hạn sử dụng (Dự kiến) -->
+                <div class="mb-4">
+                    <label for="new-customer-expiry" class="block text-sm font-medium text-gray-500 mb-1">Hạn sử dụng (Dự kiến) (Tùy chọn)</label>
+                    <input type="date" id="new-customer-expiry"
+                           class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-primary-blue focus:border-primary-blue">
+                </div>
+
+
+                <div class="mb-6">
+                    <label for="new-customer-note" class="block text-sm font-medium text-gray-500 mb-1">Ghi Chú Ban Đầu</label>
+                    <textarea id="new-customer-note" rows="2" placeholder="Ghi chú ban đầu (tùy chọn)"
+                              class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-primary-blue focus:border-primary-blue"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeNewCustomerModal()"
+                            class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                        Hủy
+                    </button>
+                    <button type="submit" id="btn-create-customer"
+                            class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50">
+                        Tạo Khách Hàng
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <label class="block text-sm text-gray-500 mb-1">Ghi chú</label>
-        <textarea id="payment-note" rows="2" placeholder="Ghi chú giao dịch"
-                  class="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 mb-6"></textarea>
-
-        <button type="submit" id="btn-confirm-payment" disabled
-                class="w-full bg-primary text-white text-lg font-medium rounded-lg py-3 shadow-md transition transform hover:scale-[1.02] disabled:opacity-50">
-          Xác Nhận Nộp Tiền
-        </button>
-      </form>
     </div>
 
-    <!-- KHỐI 3 -->
-    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-      <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        <span class="w-2 h-2 bg-primary rounded-full mr-2"></span>3. Lịch Sử Gần Nhất
-      </h2>
-      <div class="space-y-2 text-sm text-gray-600">
-        <p>Hạn dùng gần nhất: <span id="h-expiry" class="font-semibold text-red-500">--/--/----</span></p>
-        <p>Ngày nộp (lần trước): <span id="h-last-paid-date">--:-- --/--/----</span></p>
-        <p>Số tiền nộp trước: <span id="h-last-paid-amount">0 VNĐ</span></p>
-        <p>Giá khuyến mại: <span id="h-promo">0 VNĐ/12 tháng</span></p>
-        <p>Ghi chú: <span id="h-note" class="italic">Chưa có ghi chú.</span></p>
-      </div>
-    </div>
-  </div>
+    <script>
+        // *** CONFIGURATION & CACHE ***
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyuR10omxe4GdvliManK2FrJaWsMDLC276EuYd8PoQY6E4hrpUnZCWAut7t1uTDWS-s/exec'; // <-- THAY THẾ BẰNG URL ĐÃ TRIỂN KHAI CỦA BẠN
+        let customerDataCache = [];
+        let selectedCustomer = null;
 
-  <!-- MODAL -->
-  <div id="new-customer-modal"
-       class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50"
-       onclick="closeNewCustomerModal()">
-    <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onclick="event.stopPropagation()">
-      <h3 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2">Tạo Khách Hàng Mới</h3>
-      <form id="new-customer-form" onsubmit="handleNewCustomerSubmit(event)">
-        <div class="space-y-3">
-          <input id="new-customer-name" type="text" required placeholder="Tên Khách Hàng"
-                 class="w-full p-3 border border-gray-300 rounded-lg">
-          <input id="new-customer-tariff" type="text" required placeholder="Gói Cước (VNĐ)"
-                 oninput="formatCurrencyInput(this)"
-                 class="w-full p-3 border border-gray-300 rounded-lg">
-          <input id="new-customer-promo" type="text" placeholder="Giá 12 tháng (VNĐ)"
-                 oninput="formatCurrencyInput(this)"
-                 class="w-full p-3 border border-gray-300 rounded-lg">
-          <input id="new-customer-initial-payment" type="text" value="0"
-                 oninput="formatCurrencyInput(this)"
-                 placeholder="Số tiền nộp ban đầu (VNĐ)"
-                 class="w-full p-3 border border-gray-300 rounded-lg">
-          <input id="new-customer-expiry" type="date"
-                 class="w-full p-3 border border-gray-300 rounded-lg">
-          <textarea id="new-customer-note" rows="2" placeholder="Ghi chú ban đầu"
-                    class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
-        </div>
-        <div class="flex justify-end gap-3 mt-4">
-          <button type="button" onclick="closeNewCustomerModal()"
-                  class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Hủy</button>
-          <button type="submit" id="btn-create-customer"
-                  class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-green-700">Tạo</button>
-        </div>
-      </form>
-    </div>
-  </div>
+        // *** UTILITY FUNCTIONS ***
+        /** Định dạng tiền tệ: 100000 -> 100.000 VNĐ */
+        function formatCurrency(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) return '0 VNĐ';
+            // Chuyển sang chuỗi và thay thế dấu ',' thành '.' cho định dạng tiếng Việt
+            return parseFloat(amount).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ' VNĐ';
+        }
+        
+        /** Định dạng tiền tệ trực tiếp trên input: 100000 -> 100.000 */
+        function formatCurrencyInput(input) {
+            // Loại bỏ tất cả ký tự không phải số
+            const rawValue = input.value.replace(/[^0-9]/g, ''); 
+            if (!rawValue) {
+                input.value = '';
+                return;
+            }
+            // Chuyển sang số để format và đặt lại vào input
+            const amount = parseFloat(rawValue);
+            input.value = amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
 
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzBSYkXtcEdPf78aKSuSXHSp-9ukQt4NW184HFn6c-U6ltS5sNw4z8HLY5zb7g37Fld/exec'; // 🔁 Thay bằng URL của bạn
-    let customerDataCache = [], selectedCustomer = null;
+        /** Chuyển định dạng tiền tệ từ input string về number (loại bỏ dấu chấm) */
+        function cleanCurrency(input) {
+            if (typeof input !== 'string') return 0;
+            // Xóa tất cả dấu chấm (.), để lại số nguyên.
+            const cleaned = input.replace(/\./g, '');
+            return parseFloat(cleaned) || 0;
+        }
+        
+        /** Định dạng ngày tháng: Date object -> dd/MM/yyyy */
+        function formatDate(date) {
+            const d = new Date(date);
+            let day = d.getDate();
+            let month = d.getMonth() + 1;
+            const year = d.getFullYear();
 
-    const showStatus = (msg, type='success') => {
-      const el = document.getElementById('status-message');
-      el.textContent = msg;
-      el.className = 'fixed top-0 left-0 right-0 p-4 text-center z-50 transition-all';
-      if (type === 'success') el.classList.add('bg-green-600','text-white');
-      else if (type === 'error') el.classList.add('bg-red-600','text-white');
-      else el.classList.add('bg-yellow-500','text-white');
-      el.classList.remove('-translate-y-full');
-      setTimeout(()=>el.classList.add('-translate-y-full'), 4000);
-    };
+            if (day < 10) day = '0' + day;
+            if (month < 10) month = '0' + month;
 
-    const cleanCurrency = str => parseFloat((str||'').replace(/\./g,''))||0;
-    const formatCurrency = n => (n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".")+" VNĐ";
-    const formatCurrencyInput = el => {
-      const val = el.value.replace(/[^0-9]/g,'');
-      el.value = val ? parseInt(val).toLocaleString('vi-VN') : '';
-    };
+            return `${day}/${month}/${year}`;
+        }
 
-    const loadCustomerData = async () => {
-      showStatus('Đang tải dữ liệu...','loading');
-      try {
-        const r = await fetch(API_URL);
-        const data = await r.json();
-        if (data.success) {
-          customerDataCache = data.customers;
-          const sel = document.getElementById('customer-select');
-          sel.innerHTML = '<option value="">-- Chọn Khách Hàng --</option>';
-          data.customers.forEach(c=>{
-            const o=document.createElement('option');
-            o.value=c.tenKh; o.textContent=c.tenKh; sel.appendChild(o);
-          });
-          showStatus('Đã tải dữ liệu.','success');
-        } else showStatus('Lỗi tải dữ liệu','error');
-      } catch { showStatus('Không kết nối API','error'); }
-    };
+        /** Hiển thị thông báo trạng thái */
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.textContent = message;
+            statusDiv.className = 'fixed top-0 left-0 right-0 p-4 text-center z-50 transition-all duration-300';
+            
+            if (type === 'success') {
+                statusDiv.classList.add('bg-green-500', 'text-white');
+            } else if (type === 'error') {
+                statusDiv.classList.add('bg-red-500', 'text-white');
+            } else if (type === 'loading') {
+                statusDiv.classList.add('bg-yellow-500', 'text-white');
+            }
 
-    const handleCustomerChange = e => {
-      const n=e.target.value;
-      if(!n){selectedCustomer=null;return;}
-      selectedCustomer=customerDataCache.find(c=>c.tenKh===n);
-      document.getElementById('current-tariff').textContent=`Gói cước: ${formatCurrency(selectedCustomer.goiCuoc)}`;
-      document.getElementById('h-expiry').textContent=selectedCustomer.hanDungGanNhat||'--/--/----';
-      document.getElementById('h-last-paid-date').textContent=selectedCustomer.ngayNopLanTruoc||'--';
-      document.getElementById('h-last-paid-amount').textContent=formatCurrency(selectedCustomer.soTienNopTruoc);
-      document.getElementById('h-promo').textContent=formatCurrency(selectedCustomer.giaKhuyenMai)+'/12 tháng';
-      document.getElementById('h-note').textContent=selectedCustomer.ghiChu||'';
-      document.getElementById('amount-paid').value='';
-      document.getElementById('new-months').textContent='0';
-      document.getElementById('new-expiry-date').textContent='--/--/----';
-      document.getElementById('btn-confirm-payment').disabled=true;
-    };
+            statusDiv.classList.remove('-translate-y-full');
+            setTimeout(() => {
+                statusDiv.classList.add('-translate-y-full');
+            }, 5000);
+        }
 
-    const calculateNewExpiry=(months,last)=> {
-      if(months<=0) return {newExpiry:'--/--/----'};
-      const p=last?.split('/')||[],base=p.length?new Date(p[2],p[1]-1,p[0]):new Date();
-      const newDate=new Date(base.getFullYear(),base.getMonth()+months+1,0);
-      const d=("0"+newDate.getDate()).slice(-2),m=("0"+(newDate.getMonth()+1)).slice(-2);
-      return {newExpiry:`${d}/${m}/${newDate.getFullYear()}`};
-    };
+        /** Set trạng thái loading cho form */
+        function setLoading(isLoading) {
+            const buttons = document.querySelectorAll('button, input, select, textarea');
+            buttons.forEach(btn => {
+                // Chỉ disable các phần tử không phải modal
+                if (!btn.closest('#new-customer-modal')) {
+                    btn.disabled = isLoading;
+                }
+            });
+            document.getElementById('btn-confirm-payment').textContent = isLoading ? 'Đang xử lý...' : 'Xác Nhận Nộp Tiền';
+        }
 
-    const formatAndCalculate=input=>{
-      const v=cleanCurrency(input.value); input.value=v?formatCurrency(v).replace(' VNĐ',''):'';
-      if(!selectedCustomer) return;
-      const months=Math.floor(v/selectedCustomer.goiCuoc);
-      const {newExpiry}=calculateNewExpiry(months,selectedCustomer.hanDungGanNhat);
-      document.getElementById('new-months').textContent=months;
-      document.getElementById('new-expiry-date').textContent=newExpiry;
-      document.getElementById('btn-confirm-payment').disabled=months<=0;
-    };
+        // *** DATE & CALCULATION LOGIC ***
 
-    const handlePaymentSubmit=async e=>{
-      e.preventDefault();
-      if(!selectedCustomer)return showStatus('Chưa chọn KH','error');
-      const soTien=cleanCurrency(document.getElementById('amount-paid').value);
-      const soThang=parseInt(document.getElementById('new-months').textContent);
-      const hanDung=document.getElementById('new-expiry-date').textContent;
-      const ghiChu=document.getElementById('payment-note').value||'';
-      if(soTien<=0||soThang<=0)return showStatus('Số tiền không hợp lệ','error');
-      showStatus('Đang gửi...','loading');
-      const body={action:'new_payment',tenKh:selectedCustomer.tenKh,rowIndex:selectedCustomer.rowIndex,
-                  soTienNop:soTien,soThangMoi:soThang,hanDungMoi:hanDung,goiCuocHienTai:selectedCustomer.goiCuoc,
-                  giaKhuyenMai:selectedCustomer.giaKhuyenMai,ghiChu};
-      try{
-        const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-        const d=await r.json();
-        if(d.success){showStatus(d.message||'Nộp tiền thành công','success');loadCustomerData();}
-        else showStatus('Lỗi nộp tiền','error');
-      }catch{showStatus('Không gửi được dữ liệu','error');}
-    };
+        /**
+         * Tính toán ngày hết hạn mới (luôn là ngày cuối cùng của tháng đó).
+         * @param {number} months Số tháng được cộng thêm.
+         * @param {string} lastExpiryDateString Ngày hết hạn gần nhất (dd/MM/yyyy)
+         * @returns {{newExpiry: string, newExpiryDate: Date}} Ngày hết hạn mới đã định dạng và Date object.
+         */
+        function calculateNewExpiry(months, lastExpiryDateString) {
+            if (months <= 0) {
+                return { newExpiry: '--/--/----', newExpiryDate: null };
+            }
+            
+            let startDate = new Date(); // Mặc định là hôm nay
 
-    const openNewCustomerModal=()=>{document.getElementById('new-customer-modal').classList.replace('hidden','flex');};
-    const closeNewCustomerModal=()=>{document.getElementById('new-customer-modal').classList.replace('flex','hidden');};
+            if (lastExpiryDateString) {
+                // Chuyển dd/MM/yyyy sang Date object
+                const parts = lastExpiryDateString.split('/');
+                // Date(year, monthIndex, day)
+                const lastExpiry = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
 
-    const handleNewCustomerSubmit=async e=>{
-      e.preventDefault();
-      const tenKh=document.getElementById('new-customer-name').value.trim();
-      const goiCuoc=cleanCurrency(document.getElementById('new-customer-tariff').value);
-      const giaKM=cleanCurrency(document.getElementById('new-customer-promo').value);
-      const soTien=cleanCurrency(document.getElementById('new-customer-initial-payment').value);
-      const ngay=document.getElementById('new-customer-expiry').value;
-      const note=document.getElementById('new-customer-note').value||'';
-      if(!tenKh||goiCuoc<=0)return showStatus('Thiếu thông tin','error');
-      const hanDung=ngay?ngay.split('-').reverse().join('/'):'';
-      const body={action:'new_customer',tenKh,goiCuoc,giaKhuyenMai:giaKM,soTienNopBanDau:soTien,hanDungDuKien:hanDung,ghiChu:note};
-      showStatus('Đang tạo KH...','loading');
-      try{
-        const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-        const d=await r.json();
-        if(d.success){showStatus(d.message,'success');closeNewCustomerModal();loadCustomerData();}
-        else showStatus('Lỗi tạo KH','error');
-      }catch{showStatus('Không gửi được dữ liệu','error');}
-    };
+                // Nếu ngày hết hạn cũ đã qua (đã hết), bắt đầu tính từ ngày hết hạn cũ + 1 ngày.
+                if (lastExpiry.getTime() > new Date().getTime()) {
+                    startDate = lastExpiry;
+                }
+            }
 
-    window.onload=loadCustomerData;
-  </script>
+            // Tính ngày hết hạn mới
+            // Luôn cho ra ngày cuối cùng của tháng đó.
+            let newExpiryDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            
+            // 1. Cộng thêm số tháng
+            newExpiryDate.setMonth(newExpiryDate.getMonth() + months);
+            
+            // 2. Chuyển sang ngày cuối cùng của tháng đó: đi đến tháng tiếp theo và đặt ngày về 0
+            newExpiryDate.setDate(0); // Đặt ngày về 0 của tháng hiện tại -> tự động chuyển thành ngày cuối cùng của tháng trước đó (là tháng vừa được cộng)
+            
+            // Đặt lại tháng
+            newExpiryDate.setMonth(newExpiryDate.getMonth() + 1); // Trở về tháng đã tính
+            newExpiryDate.setDate(0); // Ngày cuối cùng của tháng đó
+
+            return {
+                newExpiry: formatDate(newExpiryDate),
+                newExpiryDate: newExpiryDate
+            };
+        }
+        
+        /** Xử lý format tiền và tính toán tự động */
+        function formatAndCalculate(input) {
+            const rawValue = input.value.replace(/[^0-9]/g, ''); // Loại bỏ tất cả ký tự không phải số
+            
+            // 1. Format tiền tệ
+            if (!rawValue) {
+                input.value = '';
+                document.getElementById('new-months').textContent = '0';
+                document.getElementById('new-expiry-date').textContent = '--/--/----';
+                document.getElementById('btn-confirm-payment').disabled = true;
+                return;
+            }
+
+            const amount = parseFloat(rawValue);
+            input.value = amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Định dạng lại dấu chấm
+
+            // 2. Tính toán
+            if (selectedCustomer && selectedCustomer.goiCuoc > 0) {
+                const tariff = selectedCustomer.goiCuoc;
+                let months = Math.floor(amount / tariff);
+                
+                // Cập nhật số tháng
+                document.getElementById('new-months').textContent = months;
+                
+                // Cập nhật ngày hết hạn dự kiến
+                const lastExpiry = selectedCustomer.hanDungGanNhat;
+                const { newExpiry } = calculateNewExpiry(months, lastExpiry);
+                document.getElementById('new-expiry-date').textContent = newExpiry;
+                
+                document.getElementById('btn-confirm-payment').disabled = months <= 0;
+            } else {
+                document.getElementById('btn-confirm-payment').disabled = true;
+                if (!selectedCustomer) {
+                     document.getElementById('new-months').textContent = '0';
+                     document.getElementById('new-expiry-date').textContent = '--/--/----';
+                }
+            }
+        }
+
+        // *** API & DATA HANDLING ***
+
+        /** Tải danh sách khách hàng từ Apps Script API */
+        async function loadCustomerData() {
+            setLoading(true);
+            showStatus('Đang tải dữ liệu khách hàng...', 'loading');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    customerDataCache = data.customers;
+                    populateCustomerDropdown(customerDataCache);
+                    showStatus('Tải dữ liệu thành công.', 'success');
+                } else {
+                    showStatus(`Lỗi tải dữ liệu: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showStatus('Lỗi kết nối API hoặc mạng.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /** Đổ dữ liệu vào dropdown */
+        function populateCustomerDropdown(customers) {
+            const select = document.getElementById('customer-select');
+            select.innerHTML = '<option value="">-- Chọn Khách Hàng --</option>'; // Reset
+            customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.tenKh;
+                option.textContent = customer.tenKh;
+                // Lưu index của hàng trong cache để dễ dàng lookup lại
+                option.dataset.index = customerDataCache.findIndex(c => c.tenKh === customer.tenKh); 
+                select.appendChild(option);
+            });
+            // Reset UI khi load lại data
+            clearPaymentInfo();
+        }
+
+        /** Cập nhật UI khi chọn khách hàng */
+        function handleCustomerChange(event) {
+            const customerName = event.target.value;
+            const btnConfirm = document.getElementById('btn-confirm-payment');
+            const amountInput = document.getElementById('amount-paid');
+
+            if (!customerName) {
+                selectedCustomer = null;
+                clearPaymentInfo();
+                return;
+            }
+
+            selectedCustomer = customerDataCache.find(c => c.tenKh === customerName);
+            
+            // Block 1: Gói cước hiện tại
+            document.getElementById('current-tariff').textContent = `Gói cước hiện tại: ${formatCurrency(selectedCustomer.goiCuoc)}`;
+
+            // Block 3: Lịch sử gần nhất
+            document.getElementById('h-expiry').textContent = selectedCustomer.hanDungGanNhat || 'Chưa có';
+            document.getElementById('h-last-paid-date').textContent = selectedCustomer.ngayNopLanTruoc || 'Chưa có';
+            document.getElementById('h-last-paid-amount').textContent = formatCurrency(selectedCustomer.soTienNopTruoc);
+            document.getElementById('h-promo').textContent = `${formatCurrency(selectedCustomer.giaKhuyenMai)}/12 tháng`;
+            document.getElementById('h-note').textContent = selectedCustomer.ghiChu || 'Chưa có ghi chú.';
+
+            // Hidden fields for submission
+            document.getElementById('selected-customer-name').value = selectedCustomer.tenKh;
+            document.getElementById('selected-customer-index').value = selectedCustomer.rowIndex;
+            document.getElementById('selected-customer-tariff').value = selectedCustomer.goiCuoc;
+            document.getElementById('selected-customer-promo').value = selectedCustomer.giaKhuyenMai;
+
+            // Block 2: Reset/Tự động tính toán lại
+            amountInput.value = ''; // Xóa số tiền nộp
+            document.getElementById('payment-note').value = selectedCustomer.ghiChu || ''; // Load ghi chú hiện tại
+            document.getElementById('new-months').textContent = '0';
+            document.getElementById('new-expiry-date').textContent = '--/--/----';
+            btnConfirm.disabled = true; // Disable cho đến khi nhập số tiền hợp lệ
+            amountInput.focus();
+        }
+
+        /** Reset UI khi không chọn khách hàng */
+        function clearPaymentInfo() {
+            document.getElementById('current-tariff').textContent = '';
+            document.getElementById('h-expiry').textContent = '--/--/----';
+            document.getElementById('h-last-paid-date').textContent = '--:-- --/--/----';
+            document.getElementById('h-last-paid-amount').textContent = '0 VNĐ';
+            document.getElementById('h-promo').textContent = '0 VNĐ/12 tháng';
+            document.getElementById('h-note').textContent = 'Chưa có ghi chú.';
+            document.getElementById('payment-form').reset();
+            document.getElementById('new-months').textContent = '0';
+            document.getElementById('new-expiry-date').textContent = '--/--/----';
+            document.getElementById('btn-confirm-payment').disabled = true;
+        }
+
+        /** Xử lý Nộp Tiền */
+        async function handlePaymentSubmit(event) {
+            event.preventDefault();
+            
+            const soTienNopRaw = document.getElementById('amount-paid').value;
+            const soTienNop = cleanCurrency(soTienNopRaw);
+            const soThangMoi = parseInt(document.getElementById('new-months').textContent);
+            const ghiChu = document.getElementById('payment-note').value;
+            const hanDungMoiText = document.getElementById('new-expiry-date').textContent;
+            
+            if (!selectedCustomer || soTienNop <= 0 || soThangMoi <= 0 || hanDungMoiText === '--/--/----') {
+                showStatus('Vui lòng chọn khách hàng và nhập số tiền hợp lệ.', 'error');
+                return;
+            }
+
+            const payload = {
+                action: 'new_payment',
+                tenKh: selectedCustomer.tenKh,
+                rowIndex: selectedCustomer.rowIndex,
+                soTienNop: soTienNop,
+                soThangMoi: soThangMoi,
+                hanDungMoi: hanDungMoiText, // Định dạng dd/MM/yyyy
+                goiCuocHienTai: selectedCustomer.goiCuoc,
+                giaKhuyenMai: selectedCustomer.giaKhuyenMai,
+                ghiChu: ghiChu
+            };
+            
+            setLoading(true);
+            showStatus('Đang gửi giao dịch...', 'loading');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(`Đã nộp tiền cho ${selectedCustomer.tenKh}, hạn dùng mới đến ${data.hanDungMoi}.`, 'success');
+                    // Tải lại dữ liệu sau khi nộp tiền
+                    await loadCustomerData();
+                } else {
+                    showStatus(`Lỗi nộp tiền: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('API call failed:', error);
+                showStatus('Lỗi kết nối API khi nộp tiền.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // *** NEW CUSTOMER MODAL LOGIC ***
+        
+        function openNewCustomerModal() {
+            document.getElementById('new-customer-form').reset();
+            document.getElementById('new-customer-modal').classList.remove('hidden');
+            document.getElementById('new-customer-modal').classList.add('flex');
+            document.getElementById('new-customer-name').focus();
+        }
+
+        function closeNewCustomerModal() {
+            document.getElementById('new-customer-modal').classList.add('hidden');
+            document.getElementById('new-customer-modal').classList.remove('flex');
+        }
+
+        /** Xử lý Tạo Khách Hàng Mới */
+        async function handleNewCustomerSubmit(event) {
+            event.preventDefault();
+            
+            const tenKh = document.getElementById('new-customer-name').value.trim();
+            const goiCuocRaw = document.getElementById('new-customer-tariff').value;
+            const goiCuoc = cleanCurrency(goiCuocRaw);
+            const giaKhuyenMaiRaw = document.getElementById('new-customer-promo').value;
+            const giaKhuyenMai = cleanCurrency(giaKhuyenMaiRaw);
+            const soTienNopBanDauRaw = document.getElementById('new-customer-initial-payment').value;
+            const soTienNopBanDau = cleanCurrency(soTienNopBanDauRaw);
+            const hanDungDuKienDate = document.getElementById('new-customer-expiry').value; // YYYY-MM-DD
+            const ghiChu = document.getElementById('new-customer-note').value.trim() || 'Khách hàng mới được tạo.';
+            
+            if (!tenKh || goiCuoc <= 0) {
+                showStatus('Vui lòng nhập Tên KH và Gói Cước hợp lệ.', 'error');
+                return;
+            }
+            
+            // Chuyển đổi hạn dùng từ YYYY-MM-DD sang dd/MM/yyyy nếu có
+            let hanDungDuKien = '';
+            if (hanDungDuKienDate) {
+                const parts = hanDungDuKienDate.split('-'); // [YYYY, MM, DD]
+                hanDungDuKien = `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+            }
+
+
+            const payload = {
+                action: 'new_customer',
+                tenKh: tenKh,
+                goiCuoc: goiCuoc,
+                giaKhuyenMai: giaKhuyenMai, // New
+                soTienNopBanDau: soTienNopBanDau, // New
+                hanDungDuKien: hanDungDuKien, // New
+                ghiChu: ghiChu,
+            };
+
+            setLoading(true);
+            const modalButton = document.getElementById('btn-create-customer');
+            modalButton.disabled = true;
+            modalButton.textContent = 'Đang tạo...';
+            showStatus('Đang tạo khách hàng mới...', 'loading');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    closeNewCustomerModal();
+                    showStatus(data.message, 'success');
+                    // Tải lại dữ liệu sau khi tạo KH
+                    await loadCustomerData();
+                } else {
+                    showStatus(`Lỗi tạo Khách Hàng: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('API call failed:', error);
+                showStatus('Lỗi kết nối API khi tạo Khách Hàng.', 'error');
+            } finally {
+                setLoading(false);
+                modalButton.disabled = false;
+                modalButton.textContent = 'Tạo Khách Hàng';
+            }
+        }
+
+
+        // *** INITIALIZATION ***
+        window.onload = loadCustomerData;
+    </script>
 </body>
 </html>
