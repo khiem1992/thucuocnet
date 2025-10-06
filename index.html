@@ -1,481 +1,164 @@
-<script>
-    // ----------------------------------------------------------------------------------
-    // GLOBAL VARS & SETUP (ĐÃ CẬP NHẬT CHO GITHUB PAGES)
-    // ----------------------------------------------------------------------------------
-    
-    // !!! THAY THẾ BẰNG URL WEB APP CỦA BẠN (sau khi triển khai Code.gs mới) !!!
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwyeM1GPhUGnRu6yV0K44nIf9mxUXrkypdOAIKuJyttEmXJWuaZrtPvXX-go0E0ezX3TA/exec"; 
-    
-    let customerDataMap = {};
-    let currentCustomerDetails = null; 
-    const PERSISTENT_NOTIFICATION_KEY = 'last_transaction_message'; 
-    let debounceTimer; 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PHIẾU THU INTERNET</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex justify-center items-center p-4">
+  <div class="bg-white rounded-2xl shadow-lg max-w-2xl w-full p-6 space-y-6">
+    <h1 class="text-2xl font-bold text-center text-blue-700 mb-4">PHIẾU THU INTERNET</h1>
 
-    // Hàm HỖ TRỢ tính toán ngày tháng (đã chuyển về client-side để tốc độ cao)
-    function calculateDateAfterMonths(date, months) {
-        const newDate = new Date(date);
-        const daysToAdd = months * (365.25 / 12); 
-        newDate.setDate(newDate.getDate() + daysToAdd);
-        return newDate;
-    }
-    
-    function formatDateDisplay(date) {
-        if (!(date instanceof Date) || isNaN(date)) return 'N/A';
-        const d = date.getDate().toString().padStart(2, '0');
-        const m = (date.getMonth() + 1).toString().padStart(2, '0');
-        const y = date.getFullYear();
-        return `${d}/${m}/${y}`;
+    <!-- KHỐI 1: Chọn khách hàng -->
+    <div class="p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+      <label class="font-semibold text-gray-700">1. Chọn Khách Hàng</label>
+      <div class="flex gap-2">
+        <select id="customerSelect" class="flex-1 border rounded-lg p-2 focus:ring-2 focus:ring-blue-500"></select>
+        <button id="addCustomerBtn" class="bg-green-500 text-white rounded-lg px-3 text-lg">+</button>
+      </div>
+      <p id="customerInfo" class="text-sm text-gray-500"></p>
+    </div>
+
+    <!-- KHỐI 2: Cập nhật thanh toán -->
+    <div class="p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+      <label class="font-semibold text-gray-700">2. Cập Nhật Thanh Toán</label>
+
+      <div>
+        <label class="block text-gray-700 mb-1">Số Tiền Khách Hàng Nộp (VNĐ)</label>
+        <input type="text" id="amountInput" placeholder="VD: 800000" class="border rounded-lg w-full p-2 font-bold text-lg text-blue-700 focus:ring-2 focus:ring-blue-500">
+        <p id="monthsDisplay" class="text-sm text-gray-600 mt-1"></p>
+      </div>
+
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="font-semibold text-gray-700">Hạn Dùng Mới (dự kiến):</p>
+          <p id="newExpiry" class="font-bold text-green-600 text-lg"></p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Hạn dùng cũ:</p>
+          <p id="oldExpiry" class="font-bold text-orange-500"></p>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-gray-700 mb-1">Ghi Chú (Mới)</label>
+        <textarea id="noteInput" rows="2" class="border rounded-lg w-full p-2"></textarea>
+      </div>
+    </div>
+
+    <!-- KHỐI 3: Lịch sử gần nhất -->
+    <div class="p-4 rounded-xl border border-gray-200 shadow-sm space-y-2">
+      <label class="font-semibold text-gray-700">3. Lịch Sử Gần Nhất</label>
+      <p>Ngày nộp gần nhất: <span id="lastPaidDate" class="font-semibold text-gray-700"></span></p>
+      <p>Số tiền nộp trước: <span id="lastAmount" class="font-semibold text-gray-700"></span></p>
+      <p>Ghi chú cũ: <span id="lastNote" class="text-gray-600 italic"></span></p>
+    </div>
+
+    <!-- Nút xác nhận -->
+    <button id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">
+      💾 Xác Nhận Nộp Tiền
+    </button>
+
+    <p id="resultMessage" class="text-center mt-2 font-semibold"></p>
+  </div>
+
+  <!-- Modal Thêm Khách Hàng -->
+  <div id="customerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white rounded-xl p-6 w-96 space-y-4 relative">
+      <h2 class="text-lg font-bold">Thêm Khách Hàng Mới</h2>
+      <button id="closeModal" class="absolute top-2 right-3 text-gray-500 text-xl">&times;</button>
+
+      <input id="newName" placeholder="Tên Khách Hàng (*)" class="border rounded-lg w-full p-2">
+      <input id="newPlan" placeholder="Gói Cước (VNĐ/tháng) (*)" class="border rounded-lg w-full p-2">
+      <input id="newDeposit" placeholder="Tiền Nộp Ban Đầu (*)" class="border rounded-lg w-full p-2">
+      <input id="newExpiryDate" placeholder="Hạn Dùng (dd/mm/yyyy) (*)" class="border rounded-lg w-full p-2">
+      <textarea id="newNote" placeholder="Ghi chú" class="border rounded-lg w-full p-2"></textarea>
+
+      <button id="saveCustomerBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg">Thêm Khách Hàng</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwpiDgvnwp4qwhjqjlFByreTo9OU8yzLhZf_pm0T0g2oA1V-DBBRzy_odMbHyDtBKjI/exec"; // ⚠️ Thay bằng link Web App Google Script
+
+    async function loadCustomers() {
+      const res = await fetch(API_URL + "?action=getCustomers");
+      const data = await res.json();
+      const select = document.getElementById("customerSelect");
+      select.innerHTML = data.map(c => `<option value="${c.name}" data-plan="${c.plan}" data-expiry="${c.expiry}" data-last="${c.last}" data-lastAmount="${c.lastAmount}" data-lastNote="${c.lastNote}">${c.name}</option>`).join("");
+      select.dispatchEvent(new Event("change"));
     }
 
-    // ----------------------------------------------------------------------------------
-    // HÀM HIỂN THỊ THÔNG BÁO VÀ LOADING (Giữ nguyên)
-    // ----------------------------------------------------------------------------------
-    
-    function showPersistentNotification(message, saveState = true) {
-        const notificationEl = document.getElementById('persistent-notification');
-        notificationEl.innerHTML = message;
-        notificationEl.classList.remove('visible'); 
-        setTimeout(() => { notificationEl.classList.add('visible'); }, 50);
-        if (saveState) { sessionStorage.setItem(PERSISTENT_NOTIFICATION_KEY, message); }
-    }
-    
-    function clearPersistentNotification() {
-        const notificationEl = document.getElementById('persistent-notification');
-        notificationEl.classList.remove('visible');
-        setTimeout(() => { sessionStorage.removeItem(PERSISTENT_NOTIFICATION_KEY); }, 300);
+    function formatCurrency(num) {
+      return Number(num).toLocaleString("vi-VN");
     }
 
-    function showDialog(message, title = 'Thông Báo') {
-        alert(`${title}:\n${message}`); 
-    }
+    document.getElementById("customerSelect").addEventListener("change", e => {
+      const opt = e.target.selectedOptions[0];
+      document.getElementById("customerInfo").innerText = `Gói cước: ${formatCurrency(opt.dataset.plan)} VNĐ/tháng`;
+      document.getElementById("oldExpiry").innerText = opt.dataset.expiry;
+      document.getElementById("lastPaidDate").innerText = opt.dataset.last || "Không có";
+      document.getElementById("lastAmount").innerText = opt.dataset.lastAmount ? formatCurrency(opt.dataset.lastAmount) + " đ" : "Không có";
+      document.getElementById("lastNote").innerText = opt.dataset.lastNote || "Không có";
+    });
 
-    function toggleLoading(show) {
-        document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
-        if (show) {
-            document.getElementById('persistent-notification').classList.remove('visible');
-        } else {
-            loadPersistentNotificationState();
-        }
-    }
-
-    function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
-    function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
-    
-    // ----------------------------------------------------------------------------------
-    // HÀM XỬ LÝ ĐỊNH DẠNG SỐ VÀ TIỀN TỆ (Giữ nguyên)
-    // ----------------------------------------------------------------------------------
-
-    function getRawNumber(formattedString) {
-      if (typeof formattedString !== 'string') return 0;
-      const rawString = formattedString.replace(/\./g, '').replace(/,/g, ''); 
-      return parseInt(rawString) || 0;
-    }
-
-    function formatNumber(number) {
-      if (typeof number !== 'number' || isNaN(number)) return '';
-      return number.toLocaleString('vi-VN');
-    }
-    
-    function formatCurrencyInput(inputElement, isModal = false) {
-      const rawValue = inputElement.value;
-      const rawNumber = getRawNumber(rawValue);
-      inputElement.value = formatNumber(rawNumber);
+    document.getElementById("amountInput").addEventListener("input", () => {
+      const select = document.getElementById("customerSelect");
+      const plan = parseInt(select.selectedOptions[0].dataset.plan);
+      const amount = parseInt(document.getElementById("amountInput").value.replace(/\D/g, "")) || 0;
+      const months = Math.floor(amount / plan);
+      document.getElementById("monthsDisplay").innerText = `≈ ${months} tháng`;
       
-      if (!isModal) {
-         clearTimeout(debounceTimer);
-         debounceTimer = setTimeout(() => {
-             calculateDueDate(); 
-         }, 300); 
-      }
-      return rawNumber;
-    }
-    
-    function formatAndCalculate(inputElement) {
-      formatCurrencyInput(inputElement, false);
-    }
-    
-    function formatCurrency(number) {
-      if (typeof number !== 'number' || isNaN(number)) return 'N/A';
-      return number.toLocaleString('vi-VN') + ' VNĐ';
-    }
-    
-    function formatDateTime(dateTimeString) {
-        if (!dateTimeString || dateTimeString === 'N/A') return 'N/A';
-        // Apps Script trả về ngày tháng chuẩn, JavaScript sẽ tự động xử lý.
-        const date = new Date(dateTimeString);
-        if(isNaN(date)) return dateTimeString; // Tránh lỗi nếu định dạng không phải chuẩn
-        
-        // Định dạng lại theo yêu cầu: HH:mm - DD/MM/YYYY
-        const options = {
-            hour: '2-digit', minute: '2-digit', 
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour12: false
-        };
-        return date.toLocaleString('vi-VN', options).replace(',', ' -');
-    }
-    
-    function formatHistoryItem(label, value, isRed = false) {
-        const valueClass = `text-sm font-medium ${isRed ? 'text-red-600 font-bold' : 'text-gray-800'}`;
-        return `
-            <div class="history-item">
-                <span class="history-label">${label}</span>
-                <span class="${valueClass}">${value}</span>
-            </div>
-        `;
-    }
-    
-    function isValidDateString(dateString) {
-        const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-        if (!regex.test(dateString)) return false;
-
-        const parts = dateString.split('/');
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-        const year = parseInt(parts[2], 10);
-
-        if (year < 1900 || year > 2100 || month < 1 || month > 12) return false;
-
-        const date = new Date(year, month - 1, day);
-        return date.getFullYear() === year && (date.getMonth() + 1) === month && date.getDate() === day;
-    }
-
-    function autoFormatDateInput(input) {
-        let value = input.value.replace(/[^0-9]/g, ''); 
-        if (value.length > 8) { value = value.substring(0, 8); }
-        let formatted = '';
-        if (value.length > 2) {
-            formatted += value.substring(0, 2) + '/';
-            value = value.substring(2);
-        } else { formatted = value; input.value = formatted; return; }
-        if (value.length > 2) {
-            formatted += value.substring(0, 2) + '/';
-            value = value.substring(2);
-        } else { formatted += value; input.value = formatted; return; }
-        formatted += value.substring(0, 4); 
-        input.value = formatted;
-    }
-
-    // ----------------------------------------------------------------------------------
-    // 1. TẢI TOÀN BỘ DỮ LIỆU TỪ SERVER (ĐÃ CHUYỂN SANG FETCH GET)
-    // ----------------------------------------------------------------------------------
-    async function loadCustomerNamesAndData() {
-      toggleLoading(true);
-      clearPersistentNotification();
-
-      try {
-          const response = await fetch(WEB_APP_URL, { method: 'GET' });
-          const result = await response.json();
-
-          if (!result.success) {
-              throw new Error(result.message || "Lỗi không xác định khi tải dữ liệu.");
-          }
-          
-          const dataMap = result.data;
-          customerDataMap = dataMap;
-          const select = document.getElementById('customerName');
-          const customerNames = Object.keys(dataMap).sort();
-
-          const currentValue = select.value;
-          
-          while (select.options.length > 1) { select.remove(1); }
-
-          customerNames.forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            select.appendChild(option);
-          });
-
-          select.options[0].textContent = '-- Chọn Tên Khách Hàng --';
-
-          if(currentValue && customerNames.includes(currentValue)) {
-              select.value = currentValue;
-              handleCustomerSelect(currentValue); 
-          } else {
-              resetUI();
-          }
-          
-          toggleLoading(false);
-
-      } catch (error) {
-          document.getElementById('customerName').options[0].textContent = '-- Lỗi Tải Dữ Liệu --';
-          showDialog(`Lỗi tải dữ liệu: ${error.message}`, 'Lỗi');
-          toggleLoading(false);
-      }
-    }
-    
-    function loadPersistentNotificationState() {
-        const savedMessage = sessionStorage.getItem(PERSISTENT_NOTIFICATION_KEY);
-        if (savedMessage) { showPersistentNotification(savedMessage, false); }
-    }
-
-
-    // ----------------------------------------------------------------------------------
-    // 2. XỬ LÝ SỰ KIỆN CHỌN KHÁCH HÀNG (Giữ nguyên logic)
-    // ----------------------------------------------------------------------------------
-    function handleCustomerSelect(customerName) {
-        const paymentSection = document.getElementById('paymentSection');
-        const submitButton = document.getElementById('submitPayment');
-        
-        // Reset Inputs
-        document.getElementById('paidAmount').value = '';
-        document.getElementById('newNote').value = '';
-        document.getElementById('newDueDateDisplay').textContent = '--/--/----';
-        document.getElementById('calculatedMonthsDisplay').textContent = '0 tháng';
-        document.getElementById('rawNewDueDate').value = '';
-        document.getElementById('calculatedMonths').value = 0;
-        document.getElementById('packageValue').value = '';
-        document.getElementById('rowIndex').value = '';
-        document.getElementById('historyDetails').innerHTML = '';
-        document.getElementById('suggestionText').querySelector('span').textContent = 'N/A';
-        document.getElementById('packageInfo').classList.add('hidden');
-
-        paymentSection.classList.add('hidden');
-        submitButton.disabled = true;
-
-        if (!customerName) {
-            currentCustomerDetails = null;
-            return;
-        }
-
-        const details = customerDataMap[customerName];
-        currentCustomerDetails = details;
-
-        if (details) {
-            // Cập nhật trường ẩn
-            document.getElementById('packageValue').value = details.package || ''; 
-            document.getElementById('rowIndex').value = details.rowIndex || '';
-            
-            // Cập nhật gợi ý số tiền
-            document.getElementById('suggestionText').querySelector('span').textContent = formatCurrency(details.previousAmount || 0);
-            
-            // Cập nhật gói cước hiển thị nhanh
-            document.getElementById('currentPackage').textContent = formatCurrency(details.package || 0);
-            document.getElementById('packageInfo').classList.remove('hidden');
-
-            // Hiển thị thông tin lịch sử
-            let historyHTML = '';
-            historyHTML += formatHistoryItem('Hạn dùng gần nhất:', details.lastDueDate, true);
-            historyHTML += formatHistoryItem('Ngày nộp (lần trước):', formatDateTime(details.lastPaidDate || 'N/A'));
-            historyHTML += formatHistoryItem('Số tiền nộp trước:', formatCurrency(details.previousAmount || 0));
-            historyHTML += formatHistoryItem('Ghi chú cũ:', details.previousNote || 'Không có');
-            
-            document.getElementById('historyDetails').innerHTML = historyHTML;
-            
-            paymentSection.classList.remove('hidden');
-
-            setTimeout(() => {
-                const paidAmountInput = document.getElementById('paidAmount');
-                if (paidAmountInput) { paidAmountInput.focus(); }
-            }, 0); 
-        } else {
-            showDialog('Khách hàng này không có trong dữ liệu nền. Vui lòng kiểm tra lại.', 'Cảnh Báo');
-        }
-    }
-    
-    function resetUI() {
-        document.getElementById('customerName').value = '';
-        handleCustomerSelect(''); 
-        currentCustomerDetails = null;
-    }
-
-    // ----------------------------------------------------------------------------------
-    // 3. XỬ LÝ LOGIC TÍNH TOÁN VÀ SUBMIT (ĐÃ CHUYỂN TÍNH TOÁN SANG CLIENT-SIDE)
-    // ----------------------------------------------------------------------------------
-
-    function calculateDueDate() {
-        const paidAmountInput = document.getElementById('paidAmount');
-        const paidAmount = getRawNumber(paidAmountInput.value); 
-        const newDueDateDisplay = document.getElementById('newDueDateDisplay');
-        const calculatedMonthsDisplay = document.getElementById('calculatedMonthsDisplay');
-        const submitButton = document.getElementById('submitPayment');
-        
-        const packageValue = Number(document.getElementById('packageValue').value);
-
-        // Reset nếu không hợp lệ
-        if (!currentCustomerDetails || paidAmount <= 0 || isNaN(packageValue) || packageValue <= 0) {
-            submitButton.disabled = true;
-            newDueDateDisplay.textContent = '--/--/----';
-            calculatedMonthsDisplay.textContent = '0 tháng'; 
-            document.getElementById('rawNewDueDate').value = '';
-            document.getElementById('calculatedMonths').value = 0;
-            if (currentCustomerDetails && packageValue <= 0) {
-                 showDialog("Lỗi: Khách hàng chưa có Gói Cước hợp lệ.", "Cảnh Báo Dữ Liệu Thiếu");
-            }
-            return;
-        }
-        
-        submitButton.disabled = false;
-        
-        const lastDueDateString = currentCustomerDetails.lastDueDate;
-        
-        // **LOGIC TÍNH TOÁN CHUYỂN SANG CLIENT-SIDE**
-        const calculatedMonths = paidAmount / packageValue;
-        
-        let startDate;
-        if (lastDueDateString && lastDueDateString !== 'N/A') {
-            const parts = lastDueDateString.split('/').map(Number);
-            startDate = new Date(parts[2], parts[1] - 1, parts[0]);
-        } else {
-            startDate = new Date(); 
-        }
-        
-        const newDueDate = calculateDateAfterMonths(startDate, calculatedMonths);
-
-        // Cập nhật UI
-        const newDueDateStr = formatDateDisplay(newDueDate);
-        newDueDateDisplay.textContent = newDueDateStr;
-        calculatedMonthsDisplay.textContent = `${calculatedMonths.toFixed(2)} tháng`;
-        
-        document.getElementById('rawNewDueDate').value = newDueDateStr;
-        document.getElementById('calculatedMonths').value = calculatedMonths.toFixed(2);
-    }
-    
-    // Hàm gửi POST request chung
-    async function sendPostRequest(data) {
-        const response = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(data).toString() 
-        });
-        return response.json();
-    }
-    
-    // Xử lý Submit Thanh toán (ĐÃ CHUYỂN SANG FETCH POST)
-    document.getElementById('submitPayment').addEventListener('click', async function(e) {
-        e.preventDefault();
-        
-        const rawPaidAmount = getRawNumber(document.getElementById('paidAmount').value);
-        const customerName = document.getElementById('customerName').value;
-        const newDueDate = document.getElementById('rawNewDueDate').value;
-        
-        if (!customerName || rawPaidAmount <= 0 || !newDueDate || newDueDate.includes('--/--/----')) {
-            showDialog("Vui lòng chọn khách hàng và nhập số tiền hợp lệ (> 0).", 'Cảnh Báo');
-            return;
-        }
-
-        const confirmMessage = `Xác nhận nộp ${formatNumber(rawPaidAmount)} VNĐ cho KH: ${customerName}?\nHạn dùng mới: ${newDueDate}`;
-        
-        if (confirm(confirmMessage)) {
-            toggleLoading(true);
-
-            const formData = {
-                action: 'process_payment', // Thêm action để server biết xử lý gì
-                customerName: customerName,
-                paidAmount: rawPaidAmount,
-                newDueDate: newDueDate,
-                calculatedMonths: document.getElementById('calculatedMonths').value,
-                packageValue: document.getElementById('packageValue').value,
-                newNote: document.getElementById('newNote').value.trim(),
-                rowIndex: document.getElementById('rowIndex').value,
-            };
-
-            try {
-                const response = await sendPostRequest(formData);
-
-                toggleLoading(false);
-                if (response.success) {
-                    const message = `<p class="text-emerald-600 font-medium">
-                            ✅ đã nộp tiền cho 
-                            <span class="text-blue-700 font-extrabold">${response.customerName}</span>. 
-                            hạn dùng mới đến 
-                            <span class="text-blue-700 font-extrabold">${response.newDueDate}</span>.
-                        </p>`;
-                    showPersistentNotification(message, true); 
-                    resetUI(); 
-                    loadCustomerNamesAndData(); 
-
-                } else {
-                    showDialog(response.message || "Đã xảy ra lỗi khi cập nhật thanh toán.", 'Lỗi Cập Nhật');
-                }
-            } catch (error) {
-                toggleLoading(false);
-                showDialog(`Lỗi Kết Nối Server: ${error.message}`, 'Lỗi');
-            }
-        }
-    });
-    
-    // Xử lý Submit Thêm Khách Hàng Mới (ĐÃ CHUYỂN SANG FETCH POST)
-    document.getElementById('addCustomerForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const rawInitialAmount = getRawNumber(document.getElementById('initialAmount').value);
-        const newCustomerName = document.getElementById('newCustomerName').value.trim();
-        const dueDate = document.getElementById('newCustomerDueDate').value.trim();
-        const packageValue = document.getElementById('initialPackage').value;
-        
-        if (!newCustomerName || rawInitialAmount < 0 || parseInt(packageValue) <= 0 || !isValidDateString(dueDate)) {
-            showDialog("Vui lòng điền đủ Tên, Số tiền (>= 0), Gói cước (> 0) và Hạn dùng đúng định dạng DD/MM/YYYY.", 'Cảnh Báo');
-            return;
-        }
-
-        if (newCustomerName in customerDataMap) {
-            showDialog("Tên khách hàng này đã tồn tại. Vui lòng dùng form Thanh Toán chính.", 'Cảnh Báo');
-            return;
-        }
-        
-        toggleLoading(true);
-
-        const formData = {
-            action: 'add_customer', // Thêm action để server biết xử lý gì
-            newCustomerName: newCustomerName,
-            initialAmount: rawInitialAmount, 
-            dueDate: dueDate,           
-            packageValue: packageValue, 
-            note: document.getElementById('initialNote').value.trim(),
-        };
-
-        try {
-            const response = await sendPostRequest(formData);
-
-            toggleLoading(false);
-            if (response.success) {
-                const message = `<p class="text-emerald-600 font-medium">
-                    ✨ đã tạo khách hàng 
-                    <span class="text-blue-700 font-extrabold">${response.customerName}</span> thành công! 
-                    hạn dùng đến 
-                    <span class="text-blue-700 font-extrabold">${response.newDueDate}</span>.
-                </p>`;
-                showPersistentNotification(message, true); 
-              
-                closeModal('newCustomerModal'); 
-                document.getElementById('addCustomerForm').reset();
-                loadCustomerNamesAndData(); 
-
-            } else {
-              showDialog(response.message || "Đã xảy ra lỗi khi thêm khách hàng mới.", 'Lỗi');
-            }
-        } catch (error) {
-            toggleLoading(false);
-            showDialog(`Lỗi Kết Nối Server: ${error.message}`, 'Lỗi');
-        }
-    });
-    
-    // ----------------------------------------------------------------------------------
-    // 4. KHỞI TẠO VÀ EVENTS
-    // ----------------------------------------------------------------------------------
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        // Không cần kiểm tra google.script.run nữa
-        if (WEB_APP_URL === "URL_WEB_APP_SAU_KHI_TRIỂN_KHAI_ĐẶT_VÀO_ĐÂY") {
-             showDialog('Lỗi cấu hình: Vui lòng thay WEB_APP_URL trong mã JavaScript bằng URL Apps Script của bạn.', 'Lỗi Khởi Tạo');
-             document.getElementById('customerName').options[0].textContent = '-- Lỗi Cấu Hình --';
-        } else {
-             loadCustomerNamesAndData(); 
-        }
-        
-        document.getElementById('openNewCustomerModal').addEventListener('click', () => {
-            openModal('newCustomerModal');
-            setTimeout(() => { document.getElementById('newCustomerName').focus(); }, 0);
-        });
-        
-        document.getElementById('newCustomerModal').addEventListener('click', (e) => {
-            if (e.target.id === 'newCustomerModal') { closeModal('newCustomerModal'); }
-        });
+      // Quy tắc đặc biệt
+      const special = [500000,700000,800000,1000000];
+      const addMonths = special.includes(amount) ? 12 : months;
+      const oldDate = new Date();
+      oldDate.setMonth(oldDate.getMonth() + addMonths + 1, 0);
+      document.getElementById("newExpiry").innerText = oldDate.toLocaleDateString("vi-VN");
     });
 
-</script>
+    // Modal logic
+    const modal = document.getElementById("customerModal");
+    document.getElementById("addCustomerBtn").onclick = () => modal.classList.remove("hidden");
+    document.getElementById("closeModal").onclick = () => modal.classList.add("hidden");
+
+    // Submit khách hàng mới
+    document.getElementById("saveCustomerBtn").onclick = async () => {
+      const name = newName.value.trim();
+      const plan = newPlan.value;
+      const deposit = newDeposit.value;
+      const expiry = newExpiryDate.value;
+      const note = newNote.value;
+      if (!name || !plan || !deposit || !expiry) return alert("Vui lòng nhập đủ thông tin!");
+      const body = {action: "addCustomer", name, plan, deposit, expiry, note};
+      const btn = document.getElementById("saveCustomerBtn");
+      btn.innerText = "⏳ Đang xử lý..."; btn.disabled = true;
+      const res = await fetch(API_URL, {method: "POST", body: JSON.stringify(body)});
+      const data = await res.json();
+      alert(`✅ Đã thêm khách hàng ${name}`);
+      btn.innerText = "Thêm Khách Hàng"; btn.disabled = false; modal.classList.add("hidden");
+      loadCustomers();
+    };
+
+    // Submit nộp tiền
+    document.getElementById("submitBtn").onclick = async () => {
+      const name = document.getElementById("customerSelect").value;
+      const amount = document.getElementById("amountInput").value.replace(/\D/g, "");
+      const note = document.getElementById("noteInput").value;
+      const newExpiry = document.getElementById("newExpiry").innerText;
+      if (!name || !amount) return alert("Vui lòng nhập đầy đủ thông tin!");
+      const btn = document.getElementById("submitBtn");
+      btn.innerText = "⏳ Đang xử lý..."; btn.disabled = true;
+      const body = {action: "updatePayment", name, amount, note, newExpiry};
+      const res = await fetch(API_URL, {method: "POST", body: JSON.stringify(body)});
+      const data = await res.json();
+      document.getElementById("resultMessage").innerText = `✅ Đã nộp tiền cho ${name}, hạn sử dụng mới đến ${newExpiry}`;
+      btn.innerText = "💾 Xác Nhận Nộp Tiền"; btn.disabled = false;
+      loadCustomers();
+    };
+
+    loadCustomers();
+  </script>
+</body>
+</html>
