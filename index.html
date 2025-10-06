@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Phiếu Thu Internet</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -20,13 +20,13 @@
   <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-lg">
     <h2 class="text-center text-2xl font-bold mb-4">PHIẾU THU INTERNET</h2>
 
-    <!-- KHI LOAD -->
+    <!-- Loading -->
     <div id="loading" class="flex flex-col items-center justify-center py-10">
       <div class="loader"></div>
       <p class="mt-3 text-gray-500">Đang tải dữ liệu...</p>
     </div>
 
-    <!-- CHỌN KHÁCH HÀNG -->
+    <!-- Main content -->
     <div id="main-content" class="hidden">
       <label class="block mb-2 font-medium">1. Chọn Khách Hàng</label>
       <div class="flex gap-2">
@@ -45,7 +45,7 @@
     </div>
   </div>
 
-  <!-- MODAL THÊM KHÁCH HÀNG -->
+  <!-- Modal thêm khách hàng -->
   <div id="modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm">
       <h3 class="text-lg font-bold mb-3">Thêm Khách Hàng Mới</h3>
@@ -53,7 +53,7 @@
       <input id="newPackage" placeholder="Gói Cước (VNĐ/tháng)" class="w-full border p-2 mb-2 rounded" />
       <input id="newPaid" placeholder="Tiền Nộp Ban Đầu" class="w-full border p-2 mb-2 rounded" />
       <input id="newExpired" placeholder="Hạn Dùng (dd/mm/yyyy)" class="w-full border p-2 mb-2 rounded" />
-      <textarea id="newNote" placeholder="Ghi chú" class="w-full border p-2 mb-2 rounded"></textarea>
+      <textarea id="newNote" placeholder="Ghi chú" class="w-full border p-2 mb-2 rounded h-16"></textarea>
       <div class="flex gap-2">
         <button onclick="saveCustomer()" class="flex-1 bg-green-600 text-white py-2 rounded">Lưu</button>
         <button onclick="closeModal()" class="flex-1 bg-gray-400 text-white py-2 rounded">Đóng</button>
@@ -62,14 +62,15 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycby-KvEIPOZ2H1xnw0st_JNvP8xiMqUIYv7s6kv4AXgawNTAdG1Om3G_u1HdHK_qilLq/exec";
+    // ✅ Dán link web app Google Apps Script của bạn vào đây
+    const API_URL = "https://script.google.com/macros/s/AKfycbzHLc1XeBT2A5Npz48A56hgg-cNY86YzvYeJ2ibZMvKp0hXuadEbhB70laVCCZWNTxH/exec";
 
     function formatDate(dateString) {
       if (!dateString) return "-";
       const d = new Date(dateString);
       if (isNaN(d)) return "-";
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
       const year = d.getFullYear();
       return `${day}/${month}/${year}`;
     }
@@ -79,18 +80,35 @@
       document.getElementById("main-content").classList.add("hidden");
 
       try {
-        const res = await google.script.run.withSuccessHandler(customers => {
-          const select = document.getElementById("customerSelect");
-          select.innerHTML = '<option value="">-- Chọn Tên Khách Hàng --</option>';
-          customers.forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = c.name;
-            opt.textContent = c.name;
-            select.appendChild(opt);
-          });
-          document.getElementById("loading").classList.add("hidden");
-          document.getElementById("main-content").classList.remove("hidden");
-        }).getCustomerList();
+        const res = await fetch(`${API_URL}?action=getCustomers`);
+        const customers = await res.json();
+
+        const select = document.getElementById("customerSelect");
+        select.innerHTML = '<option value="">-- Chọn Tên Khách Hàng --</option>';
+        customers.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.name;
+          opt.textContent = c.name;
+          select.appendChild(opt);
+        });
+
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("main-content").classList.remove("hidden");
+
+        // Hiển thị thông tin khi chọn KH
+        select.onchange = () => {
+          const c = customers.find(x => x.name === select.value);
+          if (!c) return (infoBox.innerHTML = "");
+          infoBox.innerHTML = `
+            <div class="mt-2">
+              <p><b>Gói cước:</b> ${c.package}</p>
+              <p><b>Tiền nộp:</b> ${c.paid}đ</p>
+              <p><b>Hạn dùng cũ:</b> <span class="text-orange-600">${formatDate(c.expiredDate)}</span></p>
+              <p><b>Ghi chú:</b> ${c.note || "-"}</p>
+            </div>
+          `;
+        };
+
       } catch (e) {
         alert("Lỗi tải dữ liệu: " + e.message);
       }
@@ -103,7 +121,7 @@
       document.getElementById("modal").classList.add("hidden");
     }
 
-    function saveCustomer() {
+    async function saveCustomer() {
       const data = {
         name: newName.value.trim(),
         package: newPackage.value,
@@ -111,22 +129,26 @@
         expiredDate: newExpired.value,
         note: newNote.value
       };
-      google.script.run.withSuccessHandler(msg => {
-        alert(msg);
-        closeModal();
-        loadCustomers();
-      }).addCustomer(data);
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "addCustomer", ...data }),
+        headers: { "Content-Type": "application/json" }
+      });
+      const result = await res.json();
+      alert(result.success ? "✅ Đã thêm khách hàng!" : "❌ Lỗi thêm khách hàng!");
+      closeModal();
+      loadCustomers();
     }
 
     async function submitPayment() {
-      const name = document.getElementById("customerSelect").value;
-      if (!name) return alert("Chọn khách hàng trước!");
-
-      const note = prompt("Nhập ghi chú (nếu có):", "");
+      const name = customerSelect.value;
+      if (!name) return alert("Vui lòng chọn khách hàng.");
+      const note = prompt("Ghi chú:", "");
       const amount = Number(prompt("Nhập số tiền nộp:", "700000"));
       if (!amount) return;
 
-      document.getElementById("submitBtn").disabled = true;
+      submitBtn.disabled = true;
       const res = await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({ name, amount, note }),
@@ -134,9 +156,8 @@
       });
       const result = await res.json();
 
-      if (result.success) alert("✅ Nộp tiền thành công!");
-      else alert("❌ " + result.message);
-      document.getElementById("submitBtn").disabled = false;
+      alert(result.success ? "✅ Nộp tiền thành công!" : "❌ " + result.message);
+      submitBtn.disabled = false;
       loadCustomers();
     }
 
