@@ -78,9 +78,9 @@
                 <input type="text" id="notes-input" class="block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
             </div>
         </div>
-
+        
         <button id="submit-btn" class="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition shadow-md disabled:bg-gray-400 hidden">
-            Xác Nhận Nộp Tiền
+                Xác Nhận Nộp Tiền
         </button>
 
         <!-- Khối 3: Thông tin khách hàng -->
@@ -364,7 +364,7 @@
         const handleNewCustomerSubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            
+
             const tenKH = formData.get('name');
             const soTienNop = parseCurrency(formData.get('new-initial-amount'));
             const giaThang = parseCurrency(formData.get('new-monthly-price'));
@@ -379,9 +379,7 @@
             
             const startDate = new Date(startDateStr);
             const monthsToAdd = Math.floor(soTienNop / giaThang);
-            // Hạn dùng ban đầu sẽ là ngày cuối của tháng bắt đầu
-            const initialExpiryDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-            const finalExpiryDate = new Date(initialExpiryDate.getFullYear(), initialExpiryDate.getMonth() + monthsToAdd, initialExpiryDate.getDate());
+            const finalExpiryDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthsToAdd + 1, 0);
 
             const payload = {
                 action: 'create',
