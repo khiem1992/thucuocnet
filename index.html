@@ -16,11 +16,34 @@
         ::-webkit-scrollbar-track { background: #e0e0e0; }
         ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 8px; }
         ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+        
+        /* Hide main content initially */
+        #main-container {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-indigo-50 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl p-6 md:p-10 space-y-8 border border-indigo-100">
+    <!-- Password Modal -->
+    <div id="password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm space-y-6 text-center transform scale-100 opacity-100 transition-all duration-300 ease-in-out">
+            <h2 class="text-2xl font-bold text-indigo-700">Yêu Cầu Mật Khẩu</h2>
+            <p class="text-slate-500">Vui lòng nhập mật khẩu để truy cập.</p>
+            <form id="password-form" class="space-y-2">
+                <input type="password" id="password-input" placeholder="••••••••" class="block w-full text-center px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-lg tracking-widest">
+                <p id="password-error" class="text-red-500 text-sm h-5"></p>
+                <button type="submit" class="!mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-lg transition-all duration-200">
+                    Đăng Nhập
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div id="main-container" class="w-full max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl p-6 md:p-10 space-y-8 border border-indigo-100">
         
         <!-- Header -->
         <header class="text-center space-y-1">
@@ -38,7 +61,7 @@
         </div>
 
         <div id="main-content" class="hidden space-y-8">
-            <!-- (Toàn bộ nội dung giao diện chính giữ nguyên như cũ) -->
+            
             <!-- Khối 1: Chọn khách hàng -->
             <div class="space-y-4 p-6 bg-indigo-50 rounded-2xl border border-indigo-200 shadow-inner">
                 <label for="customer-select" class="block text-lg font-bold text-indigo-700">1. Chọn Khách Hàng</label>
@@ -46,6 +69,7 @@
                     <select id="customer-select" class="block w-full px-4 py-3 bg-white border border-indigo-300 rounded-xl shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-lg font-medium transition duration-150 ease-in-out">
                         <option value="">-- Vui lòng chọn khách hàng --</option>
                     </select>
+                    <!-- Nút Thêm Khách Hàng Mới (Đã cố định kích thước) -->
                     <button id="add-customer-btn" title="Thêm khách hàng mới" class="flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white font-bold p-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -57,7 +81,7 @@
 
             <!-- Khối 2: Cập nhật thanh toán -->
             <div class="space-y-6 p-6 bg-slate-50 rounded-2xl shadow-lg border">
-                 <h2 class="text-lg font-bold text-slate-700 border-b pb-3">2. Thông Tin Thanh Toán</h2>
+                <h2 class="text-lg font-bold text-slate-700 border-b pb-3">2. Thông Tin Thanh Toán</h2>
                 
                 <div>
                     <label for="amount-paid" class="block text-md font-semibold text-slate-700 mb-1">Số tiền nộp</label>
@@ -73,8 +97,8 @@
                 </div>
                 
                  <div>
-                     <label for="notes" class="block text-md font-semibold text-slate-700 mb-1">Ghi chú</label>
-                     <input type="text" id="notes" placeholder="Ghi chú về giao dịch (nếu có)" class="mt-1 block w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out">
+                    <label for="notes" class="block text-md font-semibold text-slate-700 mb-1">Ghi chú</label>
+                    <input type="text" id="notes" placeholder="Ghi chú về giao dịch (nếu có)" class="mt-1 block w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out">
                  </div>
             </div>
 
@@ -133,8 +157,8 @@
                 </div>
             </form>
              <button id="modal-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-indigo-600 transition-colors">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+             </button>
         </div>
     </div>
     
@@ -146,25 +170,18 @@
         </button>
     </div>
 
-    <!-- Password Modal -->
-    <div id="password-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold text-indigo-700 mb-4">Nhập mật khẩu để vào giao diện</h3>
-        <p class="text-sm text-slate-500 mb-4">Mật khẩu được lưu ở ô Y1 (sheet "Cuoc-net"). Bạn chỉ cần nhập một lần trên trình duyệt này.</p>
-        <input id="password-input" type="password" placeholder="Mật khẩu" class="w-full px-4 py-3 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <div class="flex justify-end space-x-3">
-          <button id="pw-cancel" class="px-4 py-2 bg-slate-200 rounded-lg">Đóng</button>
-          <button id="pw-submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Xác nhận</button>
-        </div>
-        <p id="pw-error" class="text-sm text-red-500 mt-3 hidden"></p>
-      </div>
-    </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // !!! QUAN TRỌNG: Dán URL Web App của Google Apps Script của bạn vào đây
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPi4iztHZS6zB9txKC6Q1mkZLm8Y3UDAyQ9Yq18k5Al76vuzee88iio2pzdoArC_Of/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPcDEwWoyxHrQlsKpePfCS6gAzJ1iFIn8fPBiDuV-ybJnQpKgp5K6Y0wkeZmipb5gc/exec';
 
+    // --- AUTHENTICATION CONSTANTS ---
+    const CORRECT_PASSWORD = '2025';
+    const AUTH_KEY = 'internetBillAppAuthenticated';
+
+    // --- MAIN ELEMENTS ---
+    const mainContainer = document.getElementById('main-container');
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
     const customerSelect = document.getElementById('customer-select');
@@ -175,29 +192,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesInput = document.getElementById('notes');
     const historyBlock = document.getElementById('history-block');
     const submitBtn = document.getElementById('submit-payment');
+    const addCustomerBtn = document.getElementById('add-customer-btn');
+
+    // --- NOTIFICATION ELEMENTS ---
     const notification = document.getElementById('notification');
     const notificationContent = document.getElementById('notification-content');
     const notificationCloseBtn = document.getElementById('notification-close-btn');
-    const addCustomerBtn = document.getElementById('add-customer-btn');
+
+    // --- MODAL ELEMENTS ---
     const modal = document.getElementById('add-customer-modal');
     const newCustomerForm = document.getElementById('new-customer-form');
     const cancelAddCustomerBtn = document.getElementById('cancel-add-customer');
     const modalCloseBtn = document.getElementById('modal-close-btn');
-
-    // Password elements
+    
+    // --- PASSWORD MODAL ELEMENTS ---
     const passwordModal = document.getElementById('password-modal');
+    const passwordForm = document.getElementById('password-form');
     const passwordInput = document.getElementById('password-input');
-    const pwSubmit = document.getElementById('pw-submit');
-    const pwCancel = document.getElementById('pw-cancel');
-    const pwError = document.getElementById('pw-error');
+    const passwordError = document.getElementById('password-error');
 
     let customersData = [];
     let selectedCustomer = null;
     let notificationTimer = null;
-    let isAuthenticated = localStorage.getItem('phiethu_internet_auth_v1') === 'true';
 
     // --- UTILITY FUNCTIONS ---
-    const formatCurrency = (num) => num ? Number(num).toLocaleString('vi-VN') + ' vnđ' : '0 vnđ';
+    const formatCurrency = (num) => num ? num.toLocaleString('vi-VN') + ' vnđ' : '0 vnđ';
     const parseCurrency = (str) => parseInt(String(str).replace(/[^0-9]/g, ''), 10) || 0;
     
     const formatDate = (dateStr, includeTime = false) => {
@@ -228,11 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notification.classList.remove('bg-green-500', 'bg-red-500', 'opacity-0', 'translate-y-10');
         notification.classList.add(isError ? 'bg-red-500' : 'bg-green-500', 'opacity-100', 'translate-y-0');
         
-        if (isError) {
-            notificationTimer = setTimeout(hideNotification, 5000);
-        } else {
-            notificationTimer = setTimeout(hideNotification, 10000);
-        }
+        notificationTimer = setTimeout(hideNotification, isError ? 5000 : 10000);
     };
 
     const setLoadingState = (isLoading, form = 'payment') => {
@@ -258,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         customerSelect.value = '';
     };
 
-    // --- FETCH with retry (giữ linh hoạt) ---
+    // --- DATA FETCHING & UI ---
     const fetchWithRetry = async (url, options = {}) => {
         let response;
         for (let i = 0; i < 3; i++) {
@@ -274,12 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return response;
     };
 
-    // --- Fetch customers nhưng KHÔNG hiển thị mainContent nếu chưa auth ---
-    const fetchAndPopulateCustomers = async () => {
-        // Hiển thị loader (dù modal mật khẩu đang hiển thị)
-        loader.classList.remove('hidden');
-        mainContent.classList.add('hidden');
-
+    const fetchCustomers = async () => {
         try {
             const response = await fetchWithRetry(`${SCRIPT_URL}?action=get_all`);
             customersData = await response.json();
@@ -295,14 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Lỗi khi tải danh sách khách hàng:', error);
             showNotification('<strong>Lỗi:</strong> Không thể tải danh sách khách hàng. Kiểm tra Apps Script URL.', true);
-        } finally {
-            // Ẩn loader; chỉ show main nếu đã auth
-            loader.classList.add('hidden');
-            if (isAuthenticated) {
-                mainContent.classList.remove('hidden');
-            } else {
-                mainContent.classList.add('hidden');
-            }
         }
     };
 
@@ -347,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const { gia1Thang, giaKhuyenMai, hanDungMoi } = selectedCustomer;
-        
         let monthsToAdd = 0;
         
         if (giaKhuyenMai > 0 && amountPaid === giaKhuyenMai) {
@@ -375,7 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const isAdding = payload.action === 'add_customer';
         setLoadingState(true, isAdding ? 'add' : 'payment');
         try {
-            // POST for add/submit: dùng mode no-cors như trước (Apps Script thường chấp nhận)
             await fetchWithRetry(SCRIPT_URL, {
                 method: 'POST', mode: 'no-cors', cache: 'no-cache',
                 headers: { 'Content-Type': 'application/json' },
@@ -393,7 +393,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 newCustomerForm.reset();
             }
             resetUI();
-            await fetchAndPopulateCustomers(); // Refresh the list
+            // Start fetching new data but don't wait for it here
+            const dataRefreshPromise = fetchCustomers();
+            // Show loader while new data is being fetched
+            loader.classList.remove('hidden');
+            mainContent.classList.add('hidden');
+            await dataRefreshPromise;
+            loader.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+
         } catch (error) {
             console.error('Lỗi khi gửi dữ liệu:', error);
             showNotification('Có lỗi xảy ra khi gửi dữ liệu. Vui lòng kiểm tra kết nối và Apps Script.', true);
@@ -456,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    // --- MODAL & EVENTS ---
+    // --- MODAL HANDLING & EVENT LISTENERS ---
     const toggleModal = (show) => modal.classList.toggle('hidden', !show);
     
     customerSelect.addEventListener('change', handleCustomerSelect);
@@ -482,77 +490,63 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.addEventListener('click', (e) => { if (e.target === modal) toggleModal(false); });
     newCustomerForm.addEventListener('submit', addNewCustomer);
 
-    // --- PASSWORD FLOW ---
-    const openPasswordModal = () => {
-        pwError.classList.add('hidden');
-        passwordInput.value = '';
-        passwordModal.style.display = 'flex';
-    };
-    const closePasswordModal = () => {
-        passwordModal.style.display = 'none';
+
+    // --- AUTHENTICATION & INITIALIZATION ---
+    const showMainApp = async (dataPromise) => {
+        // Hide password modal
+        passwordModal.style.opacity = '0';
+        setTimeout(() => passwordModal.classList.add('hidden'), 300);
+
+        // Show main app container
+        mainContainer.style.visibility = 'visible';
+        mainContainer.style.opacity = '1';
+        
+        // Wait for background data loading to finish
+        await dataPromise;
+
+        // Hide loader and show main content
+        loader.classList.add('hidden');
+        mainContent.classList.remove('hidden');
     };
 
-    // Check password by POSTing to Apps Script (expect JSON response)
-    const checkPasswordOnServer = async (pwd) => {
-        try {
-            const resp = await fetchWithRetry(SCRIPT_URL, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'check_password', pwd })
-            });
-            // Nếu web app cho phép CORS thì chúng ta sẽ nhận JSON
-            const json = await resp.json();
-            return json;
-        } catch (err) {
-            console.error('Lỗi check password:', err);
-            throw err;
+    const handleLogin = (e, dataPromise) => {
+        if (e) e.preventDefault();
+        const enteredPassword = passwordInput.value;
+        if (enteredPassword === CORRECT_PASSWORD) {
+            localStorage.setItem(AUTH_KEY, 'true');
+            passwordError.textContent = '';
+            showMainApp(dataPromise);
+        } else {
+            passwordError.textContent = 'Mật khẩu không đúng. Vui lòng thử lại.';
+            passwordInput.value = '';
+            passwordInput.focus();
+            // Animate error
+            passwordModal.querySelector('div').classList.add('animate-shake');
+            setTimeout(()=> passwordModal.querySelector('div').classList.remove('animate-shake'), 500);
         }
     };
+    
+    const initializeApp = () => {
+        // Add shake animation class for password error
+        const style = document.createElement('style');
+        style.textContent = `@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } } .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }`;
+        document.head.appendChild(style);
 
-    pwSubmit.addEventListener('click', async () => {
-        const pwd = passwordInput.value || '';
-        if (!pwd) { pwError.textContent = 'Vui lòng nhập mật khẩu.'; pwError.classList.remove('hidden'); return; }
-        pwError.classList.add('hidden');
-        pwSubmit.disabled = true;
-        pwSubmit.textContent = 'Đang kiểm tra...';
-        try {
-            const result = await checkPasswordOnServer(pwd);
-            if (result && result.status === 'success') {
-                // Thành công -> lưu vào localStorage
-                localStorage.setItem('phiethu_internet_auth_v1', 'true');
-                isAuthenticated = true;
-                closePasswordModal();
-                // Nếu dữ liệu đã tải xong, hiện main ngay
-                loader.classList.add('hidden');
-                mainContent.classList.remove('hidden');
-                showNotification('Xác thực thành công. Chào mừng!', false);
-            } else {
-                pwError.textContent = 'Mật khẩu không đúng. Vui lòng thử lại.';
-                pwError.classList.remove('hidden');
-            }
-        } catch (err) {
-            pwError.textContent = 'Lỗi khi xác thực (kiểm tra kết nối).';
-            pwError.classList.remove('hidden');
-        } finally {
-            pwSubmit.disabled = false;
-            pwSubmit.textContent = 'Xác nhận';
+        // Start fetching data immediately in the background
+        const dataPromise = fetchCustomers();
+        
+        if (localStorage.getItem(AUTH_KEY) === 'true') {
+            showMainApp(dataPromise);
+        } else {
+            // Show password modal if not authenticated
+            passwordModal.classList.remove('hidden');
+            passwordInput.focus();
         }
-    });
 
-    pwCancel.addEventListener('click', () => {
-        // Nếu người dùng cancel: chỉ đóng modal tạm thời (vẫn giữ ẩn giao diện chính)
-        closePasswordModal();
-        // Bạn có thể muốn redirect đi chỗ khác nếu không muốn cho dùng trang khi chưa auth
-    });
+        passwordForm.addEventListener('submit', (e) => handleLogin(e, dataPromise));
+    };
 
-    // Nếu đã authenticated trước đó, ẩn modal ngay
-    if (isAuthenticated) {
-        passwordModal.style.display = 'none';
-    } else {
-        openPasswordModal();
-    }
-
-    // Initial Load: bắt đầu tải dữ liệu ngay (dù modal mật khẩu hiển thị)
-    fetchAndPopulateCustomers();
+    initializeApp();
 });
 </script>
 </body>
