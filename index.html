@@ -7,11 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            scroll-behavior: smooth;
-        }
-        /* Custom scrollbar */
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #e0e0e0; }
         ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 8px; }
@@ -20,34 +16,46 @@
 </head>
 <body class="bg-indigo-50 flex items-center justify-center min-h-screen p-4">
 
+    <div id="password-gate" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 space-y-6">
+            <h2 class="text-2xl font-bold text-center text-indigo-700">Xác Thực Truy Cập</h2>
+            <p class="text-center text-sm text-slate-500">Vui lòng nhập mật khẩu để tiếp tục.</p>
+            <form id="password-form" class="space-y-4">
+                <input type="password" id="password-input" placeholder="Mật khẩu" class="block w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl shadow-inner focus:outline-none focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-lg font-medium transition duration-150">
+                <button type="submit" id="password-submit" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold py-3 rounded-xl shadow-lg text-lg transition-all duration-300">
+                    Truy Cập
+                </button>
+                <p id="password-error" class="text-center text-red-500 font-semibold h-5"></p>
+            </form>
+        </div>
+    </div>
+
+
     <div class="w-full max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl p-6 md:p-10 space-y-8 border border-indigo-100">
         
-        <!-- Header -->
         <header class="text-center space-y-1">
             <h1 class="text-4xl font-extrabold text-indigo-700 tracking-tight">PHIẾU THU INTERNET</h1>
             <p class="text-sm text-indigo-400">Quản lý thu chi và hạn dùng tự động</p>
         </header>
 
-        <!-- Loading Spinner -->
         <div id="loader" class="text-center py-12">
             <svg class="animate-spin h-10 w-10 text-indigo-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p class="mt-4 text-slate-500 font-semibold">Đang tải danh sách khách hàng...</p>
+            <p class="mt-4 text-slate-500 font-semibold">Đang tải dữ liệu...</p>
         </div>
 
         <div id="main-content" class="hidden space-y-8">
             
-            <!-- Khối 1: Chọn khách hàng -->
             <div class="space-y-4 p-6 bg-indigo-50 rounded-2xl border border-indigo-200 shadow-inner">
                 <label for="customer-select" class="block text-lg font-bold text-indigo-700">1. Chọn Khách Hàng</label>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                     <select id="customer-select" class="block w-full px-4 py-3 bg-white border border-indigo-300 rounded-xl shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-lg font-medium transition duration-150 ease-in-out">
                         <option value="">-- Vui lòng chọn khách hàng --</option>
                     </select>
-                    <button id="add-customer-btn" title="Thêm khách hàng mới" class="flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white font-bold p-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.05] flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button id="add-customer-btn" title="Thêm khách hàng mới" class="flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white font-bold p-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                     </button>
@@ -55,15 +63,12 @@
                 <p id="current-package" class="text-sm text-indigo-600 font-medium h-5 italic"></p>
             </div>
 
-            <!-- Khối 2: Cập nhật thanh toán -->
             <div class="space-y-6 p-6 bg-slate-50 rounded-2xl shadow-lg border">
-                 <h2 class="text-lg font-bold text-slate-700 border-b pb-3">2. Thông Tin Thanh Toán</h2>
-                
+                <h2 class="text-lg font-bold text-slate-700 border-b pb-3">2. Thông Tin Thanh Toán</h2>
                 <div>
                     <label for="amount-paid" class="block text-md font-semibold text-slate-700 mb-1">Số tiền nộp</label>
-                    <input type="text" id="amount-paid" placeholder="Nhập số tiền (VD: 165,000)" class="mt-1 block w-full px-5 py-3 bg-yellow-50 border-2 border-amber-400 rounded-xl shadow-inner focus:outline-none focus:ring-4 focus:ring-amber-200 focus:border-amber-600 text-2xl font-extrabold text-amber-700 transition duration-150 ease-in-out placeholder-gray-400">
+                    <input type="text" id="amount-paid" placeholder="Nhập số tiền (VD: 70.000)" class="mt-1 block w-full px-5 py-3 bg-yellow-50 border-2 border-amber-400 rounded-xl shadow-inner focus:outline-none focus:ring-4 focus:ring-amber-200 focus:border-amber-600 text-2xl font-extrabold text-amber-700 transition duration-150 ease-in-out placeholder-gray-400">
                 </div>
-                
                 <div>
                     <label class="block text-md font-semibold text-slate-700 mb-1">Hạn dùng mới (dự kiến)</label>
                     <div id="new-expiry-date" class="mt-1 flex flex-col md:flex-row items-center justify-between p-4 bg-emerald-100 border-2 border-emerald-300 rounded-xl text-emerald-800 font-extrabold text-xl md:text-2xl">
@@ -71,41 +76,38 @@
                         <span id="months-added" class="text-sm font-medium bg-emerald-200 text-emerald-900 px-3 py-1 rounded-full mt-2 md:mt-0"></span>
                     </div>
                 </div>
-                
                  <div>
                      <label for="notes" class="block text-md font-semibold text-slate-700 mb-1">Ghi chú</label>
                      <input type="text" id="notes" placeholder="Ghi chú về giao dịch (nếu có)" class="mt-1 block w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out">
                  </div>
             </div>
 
-            <!-- Submit Button (Vẫn giữ nguyên vị trí trực quan) -->
-            <button id="submit-payment" disabled class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-extrabold py-4 rounded-xl shadow-lg text-xl transition-all duration-300 transform hover:scale-[1.01] hover:shadow-xl">
+            <button id="submit-payment" disabled class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-extrabold py-4 rounded-xl shadow-lg text-xl transition-all duration-300 hover:shadow-xl">
                 Xác Nhận Nộp Tiền
             </button>
             
-            <!-- Khối 3: Lịch sử gần nhất (Đã chuyển xuống dưới nút Submit) -->
             <div id="history-block" class="space-y-4 p-6 bg-white rounded-2xl shadow-lg border border-slate-200 text-slate-600 hidden">
-                <h2 class="text-lg font-bold text-indigo-700 border-b pb-3">3. Thông Tin Thanh Toán Gần Nhất (Tham Khảo)</h2>
+                 <h2 class="text-lg font-bold text-indigo-700 border-b pb-3">3. Thông Tin Khách Hàng</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="p-3 bg-indigo-50 rounded-lg">
                         <span class="font-semibold text-slate-800 block text-sm">Hạn dùng gần nhất:</span>
-                        <p id="history-expiry" class="text-2xl font-extrabold text-red-600 leading-tight"></p>
+                         <p id="history-expiry" class="text-2xl font-extrabold text-red-600 leading-tight"></p>
                     </div>
                     <div class="p-3 bg-indigo-50 rounded-lg">
                         <span class="font-semibold text-slate-800 block text-sm">Ngày nộp (lần trước):</span>
-                        <p id="history-payment-date" class="text-base font-semibold"></p>
+                         <p id="history-payment-date" class="text-base font-semibold"></p>
                     </div>
                     <div class="p-3 bg-indigo-50 rounded-lg">
-                        <span class="font-semibold text-slate-800 block text-sm">Số tiền nộp trước:</span>
-                        <p id="history-amount" class="text-lg font-bold text-indigo-600"></p>
+                        <span class="font-semibold text-slate-800 block text-sm">Số tiền (lần trước):</span>
+                         <p id="history-amount" class="text-lg font-bold text-indigo-600"></p>
                     </div>
                      <div class="p-3 bg-indigo-50 rounded-lg">
-                         <span class="font-semibold text-slate-800 block text-sm">Giá Gói 12 tháng (Promo):</span>
-                         <p id="history-promo-price" class="text-lg font-bold text-purple-600"></p>
+                         <span class="font-semibold text-slate-800 block text-sm">Giá 12 tháng (Promo):</span>
+                          <p id="history-promo-price" class="text-lg font-bold text-purple-600"></p>
                      </div>
                     <div class="sm:col-span-2 p-3 bg-indigo-50 rounded-lg">
                         <span class="font-semibold text-slate-800 block text-sm">Ghi chú:</span>
-                        <p id="history-notes" class="italic text-slate-500"></p>
+                         <p id="history-notes" class="italic text-slate-500"></p>
                     </div>
                 </div>
             </div>
@@ -113,14 +115,13 @@
         </div>
     </div>
     
-    <!-- Modal Thêm Khách Hàng Mới -->
     <div id="add-customer-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-40 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-lg space-y-6 relative transform scale-100 opacity-100 transition-all duration-300 ease-in-out">
             <h2 class="text-2xl font-bold text-indigo-700 border-b pb-3">Thêm Khách Hàng Mới</h2>
             <form id="new-customer-form" class="space-y-4">
                 <input type="text" id="new-customer-name" required placeholder="Tên khách hàng *" class="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-                <input type="text" id="new-package-price" required placeholder="Giá 1 tháng (VD: 165000) *" class="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-                <input type="text" id="new-promo-price" required placeholder="Giá khuyến mại 12 tháng (VD: 1980000) *" class="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                <input type="text" id="new-package-price" required placeholder="Giá 1 tháng (VD: 70.000) *" class="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                <input type="text" id="new-promo-price" required placeholder="Giá khi nộp 12 tháng (VD: 800.000) *" class="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
                 <input type="text" id="new-initial-payment" required placeholder="Số tiền nộp ban đầu *" class="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
                 <div>
                     <label for="new-expiry" class="block text-sm font-medium text-gray-700">Hạn sử dụng ban đầu (Ngày cuối tháng) *</label>
@@ -138,7 +139,6 @@
         </div>
     </div>
     
-    <!-- Notification Toast -->
     <div id="notification" class="fixed top-5 right-5 max-w-sm bg-green-500 text-white p-4 rounded-xl shadow-xl opacity-0 transform translate-y-10 transition-all duration-300 flex items-start space-x-4 z-50">
         <div id="notification-content" class="flex-grow"></div>
         <button id="notification-close-btn" class="flex-shrink-0">
@@ -150,9 +150,15 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // !!! QUAN TRỌNG: Dán URL Web App của Google Apps Script của bạn vào đây
-    // URL này dùng để giao tiếp với Google Sheet để lưu/tải dữ liệu.
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqkYs9Juct1QOVdqpwDE6KY7J-rRPDgNsYUZ1VNXCCsrJOGfktavCSVf3dINsxD0qQ/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4Yw4IIraVOMcmrt95TKOhsLLtUJHPjMXwc9m5cI08JwZdiMR260nTvGqdo5ZnBz3C/exec';
 
+    // --- DOM Elements ---
+    const passwordGate = document.getElementById('password-gate');
+    const passwordForm = document.getElementById('password-form');
+    const passwordInput = document.getElementById('password-input');
+    const passwordSubmitBtn = document.getElementById('password-submit');
+    const passwordError = document.getElementById('password-error');
+    
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
     const customerSelect = document.getElementById('customer-select');
@@ -172,19 +178,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelAddCustomerBtn = document.getElementById('cancel-add-customer');
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
+    // --- State Variables ---
     let customersData = [];
+    let correctPassword = '';
     let selectedCustomer = null;
     let notificationTimer = null;
+    let initialDataFetchPromise = null;
 
     // --- UTILITY FUNCTIONS ---
     const formatCurrency = (num) => num ? num.toLocaleString('vi-VN') + ' vnđ' : '0 vnđ';
     const parseCurrency = (str) => parseInt(String(str).replace(/[^0-9]/g, ''), 10) || 0;
-    
     const formatDate = (dateStr, includeTime = false) => {
         if (!dateStr) return 'N/A';
         const date = new Date(dateStr);
         if (isNaN(date)) return 'N/A';
-
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
@@ -195,25 +202,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return `${day}/${month}/${year}`;
     };
-
     const hideNotification = () => {
         notification.classList.remove('opacity-100', 'translate-y-0');
         notification.classList.add('opacity-0', 'translate-y-10');
         if (notificationTimer) clearTimeout(notificationTimer);
     };
-
     const showNotification = (htmlContent, isError = false) => {
         if (notificationTimer) clearTimeout(notificationTimer);
         notificationContent.innerHTML = htmlContent;
         notification.classList.remove('bg-green-500', 'bg-red-500', 'opacity-0', 'translate-y-10');
         notification.classList.add(isError ? 'bg-red-500' : 'bg-green-500', 'opacity-100', 'translate-y-0');
-        if (isError) {
-            notificationTimer = setTimeout(hideNotification, 5000);
-        } else {
-            notificationTimer = setTimeout(hideNotification, 3000);
-        }
+        notificationTimer = setTimeout(hideNotification, isError ? 5000 : 10000);
     };
-
     const setLoadingState = (isLoading, form = 'payment') => {
         if (form === 'payment') {
             submitBtn.disabled = isLoading;
@@ -224,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
             createBtn.textContent = isLoading ? 'Đang tạo...' : 'Tạo Khách Hàng';
         }
     };
-    
     const resetUI = () => {
         selectedCustomer = null;
         historyBlock.classList.add('hidden');
@@ -243,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 3; i++) {
             try {
                 response = await fetch(url, options);
-                // For GET request, we expect response.ok. For no-cors POST, we just check if it executed without network error.
                 if (options.method === 'POST' || response.ok) break;
             } catch (e) {
                 console.warn(`Attempt ${i + 1} failed, retrying...`);
@@ -254,28 +252,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return response;
     };
 
-    const fetchAndPopulateCustomers = async () => {
-        loader.classList.remove('hidden');
-        mainContent.classList.add('hidden');
+    const fetchInitialData = async () => {
         try {
             const response = await fetchWithRetry(`${SCRIPT_URL}?action=get_all`);
-            customersData = await response.json();
-            
-            customerSelect.innerHTML = '<option value="">-- Vui lòng chọn khách hàng --</option>';
-            customersData.forEach((customer, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                const displayExpiry = formatDate(customer.hanDungMoi);
-                option.textContent = `${customer.tenKH} (Hạn: ${displayExpiry})`;
-                customerSelect.appendChild(option);
-            });
+            const responseData = await response.json();
+            customersData = responseData.customers;
+            correctPassword = responseData.password;
         } catch (error) {
-            console.error('Lỗi khi tải danh sách khách hàng:', error);
-            showNotification('<strong>Lỗi:</strong> Không thể tải danh sách khách hàng. Kiểm tra Apps Script URL.', true);
-        } finally {
-            loader.classList.add('hidden');
-            mainContent.classList.remove('hidden');
+            console.error('Lỗi khi tải dữ liệu ban đầu:', error);
+            showNotification('<strong>Lỗi:</strong> Không thể tải dữ liệu từ Google Sheet. Vui lòng kiểm tra lại URL và kết nối.', true);
+            passwordSubmitBtn.disabled = true;
+            passwordSubmitBtn.textContent = "Lỗi Tải Dữ Liệu";
         }
+    };
+
+    const populateCustomerDropdown = () => {
+        loader.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+        customerSelect.innerHTML = '<option value="">-- Vui lòng chọn khách hàng --</option>';
+        customersData.forEach((customer, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            const displayExpiry = formatDate(customer.hanDungMoi);
+            option.textContent = `${customer.tenKH} (Hạn: ${displayExpiry})`;
+            customerSelect.appendChild(option);
+        });
     };
 
     const handleCustomerSelect = () => {
@@ -288,66 +289,36 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedCustomer = customersData[selectedIndex];
         updateUIForSelectedCustomer();
     };
-    
+
     const updateUIForSelectedCustomer = () => {
         historyBlock.classList.remove('hidden');
-        
         document.getElementById('history-expiry').textContent = formatDate(selectedCustomer.hanDungMoi);
         document.getElementById('history-payment-date').textContent = formatDate(selectedCustomer.ngayNop, true);
         document.getElementById('history-amount').textContent = formatCurrency(selectedCustomer.soTienNop);
         document.getElementById('history-promo-price').textContent = formatCurrency(selectedCustomer.giaKhuyenMai);
         document.getElementById('history-notes').textContent = selectedCustomer.ghiChu || 'Không có';
-        
         currentPackage.textContent = `Gói cước: ${formatCurrency(selectedCustomer.gia1Thang)}/tháng. Giá 12 tháng: ${formatCurrency(selectedCustomer.giaKhuyenMai)}.`;
-        
         notesInput.value = '';
         amountPaidInput.value = '';
-        
         calculateNewExpiry();
         submitBtn.disabled = false;
     };
-    
+
     // --- CALCULATIONS ---
     const calculateNewExpiry = () => {
-        if (!selectedCustomer) {
-            newExpiryDateDiv.textContent = 'Chưa tính'; monthsAddedSpan.textContent = ''; submitBtn.disabled = true; return;
-        }
+        if (!selectedCustomer) { newExpiryDateDiv.textContent = 'Chưa tính'; monthsAddedSpan.textContent = ''; submitBtn.disabled = true; return; }
         const amountPaid = parseCurrency(amountPaidInput.value);
-        
-        if (amountPaid === 0) {
-            newExpiryDateDiv.textContent = 'Chưa tính'; monthsAddedSpan.textContent = ''; submitBtn.disabled = true; return;
-        }
-        
+        if (amountPaid === 0) { newExpiryDateDiv.textContent = 'Chưa tính'; monthsAddedSpan.textContent = ''; submitBtn.disabled = true; return; }
         const { gia1Thang, giaKhuyenMai, hanDungMoi } = selectedCustomer;
-        
         let monthsToAdd = 0;
-        
-        if (giaKhuyenMai > 0 && amountPaid === giaKhuyenMai) {
-            monthsToAdd = 12;
-        } else if (gia1Thang > 0) {
-            monthsToAdd = Math.floor(amountPaid / gia1Thang);
-        }
-
-        if (monthsToAdd <= 0) {
-            newExpiryDateDiv.textContent = 'Số tiền không đủ'; monthsAddedSpan.textContent = ''; submitBtn.disabled = true; return;
-        }
-        
-        // Tính ngày hết hạn mới: Bắt đầu từ ngày hết hạn cũ và cộng thêm số tháng
+        if (giaKhuyenMai > 0 && amountPaid === giaKhuyenMai) { monthsToAdd = 12; } 
+        else if (gia1Thang > 0) { monthsToAdd = Math.floor(amountPaid / gia1Thang); }
+        if (monthsToAdd <= 0) { newExpiryDateDiv.textContent = 'Số tiền không đủ'; monthsAddedSpan.textContent = ''; submitBtn.disabled = true; return; }
         const expiryDateOld = new Date(hanDungMoi);
-        
-        // Tạo ngày mới bằng cách cộng monthsToAdd vào tháng hiện tại của hanDungMoi
-        // Date object sẽ tự động điều chỉnh năm và ngày cho đúng
-        const newDate = new Date(expiryDateOld.getFullYear(), expiryDateOld.getMonth() + monthsToAdd, expiryDateOld.getDate());
-        
-        // Logic điều chỉnh để đảm bảo ngày mới không bị nhảy nếu ngày hết hạn cũ là ngày cuối tháng
-        // Nếu ngày hết hạn cũ là ngày cuối tháng (ví dụ 31/1), ngày mới cần là ngày cuối tháng tương ứng (ví dụ 29/2)
-        if (expiryDateOld.getDate() !== newDate.getDate()) {
-            newDate.setDate(0); // Đặt lại ngày về ngày cuối tháng trước
-        }
-        
+        const finalMonth = expiryDateOld.getMonth() + 1 + monthsToAdd;
+        const newDate = new Date(expiryDateOld.getFullYear(), finalMonth, 0);
         newExpiryDateDiv.textContent = formatDate(newDate);
         monthsAddedSpan.textContent = `+${monthsToAdd} tháng`;
-        
         submitBtn.disabled = false;
     };
 
@@ -356,25 +327,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const isAdding = payload.action === 'add_customer';
         setLoadingState(true, isAdding ? 'add' : 'payment');
         try {
-            // Sử dụng fetchWithRetry cho POST request (mode: no-cors không trả về status)
             await fetchWithRetry(SCRIPT_URL, {
                 method: 'POST', mode: 'no-cors', cache: 'no-cache',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             const successMessage = isAdding
                 ? `Đã tạo KH mới: <strong class="font-bold text-yellow-300">${payload.tenKH}</strong>. Hạn dùng đến <strong class="font-bold text-yellow-300">${formatDate(payload.hanDungMoi)}</strong>.`
                 : `Đã nộp tiền cho <strong class="font-bold text-yellow-300">${payload.tenKH}</strong>, hạn dùng mới đến <strong class="font-bold text-yellow-300">${formatDate(payload.hanDungMoi)}</strong>.`;
-            
             showNotification(successMessage);
-            
-            if (isAdding) {
-                toggleModal(false);
-                newCustomerForm.reset();
-            }
+            if (isAdding) { toggleModal(false); newCustomerForm.reset(); }
             resetUI();
-            await fetchAndPopulateCustomers(); // Refresh the list
+            // Refetch data to get the latest list
+            await fetchInitialData();
+            populateCustomerDropdown();
         } catch (error) {
             console.error('Lỗi khi gửi dữ liệu:', error);
             showNotification('Có lỗi xảy ra khi gửi dữ liệu. Vui lòng kiểm tra kết nối và Apps Script.', true);
@@ -387,30 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectedCustomer) { showNotification('Vui lòng chọn khách hàng.', true); return; }
         const amountPaid = parseCurrency(amountPaidInput.value);
         if (amountPaid <= 0) { showNotification('Vui lòng nhập số tiền hợp lệ.', true); return; }
-
         const { gia1Thang, giaKhuyenMai, hanDungMoi } = selectedCustomer;
         let monthsToAdd = 0;
-        
-        if (giaKhuyenMai > 0 && amountPaid === giaKhuyenMai) {
-            monthsToAdd = 12;
-        } else if (gia1Thang > 0) {
-            monthsToAdd = Math.floor(amountPaid / gia1Thang);
-        }
-
-        if (monthsToAdd <= 0) {
-            showNotification('Số tiền nộp không đủ cho 1 tháng.', true); 
-            return;
-        }
-        
-        // Tính ngày hết hạn mới
+        if (giaKhuyenMai > 0 && amountPaid === giaKhuyenMai) { monthsToAdd = 12; } 
+        else if (gia1Thang > 0) { monthsToAdd = Math.floor(amountPaid / gia1Thang); }
+        if (monthsToAdd <= 0) { showNotification('Số tiền nộp không đủ cho 1 tháng.', true); return; }
         const expiryDateOld = new Date(hanDungMoi);
-        const newExpiry = new Date(expiryDateOld.getFullYear(), expiryDateOld.getMonth() + monthsToAdd, expiryDateOld.getDate());
-        
-        // Điều chỉnh ngày cuối tháng
-        if (expiryDateOld.getDate() !== newExpiry.getDate()) {
-            newExpiry.setDate(0); 
-        }
-
+        const finalMonth = expiryDateOld.getMonth() + 1 + monthsToAdd;
+        const newExpiry = new Date(expiryDateOld.getFullYear(), finalMonth, 0);
         submitAction({
             action: 'submit_payment', tenKH: selectedCustomer.tenKH, soTienNop: amountPaid,
             hanDungMoi: newExpiry.toISOString(), gia1Thang: gia1Thang, soThang: monthsToAdd,
@@ -425,17 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const promoPrice = parseCurrency(document.getElementById('new-promo-price').value);
         const initialPayment = parseCurrency(document.getElementById('new-initial-payment').value);
         const expiryDateStr = document.getElementById('new-expiry').value;
-        
         if (!name || packagePrice <= 0 || initialPayment <= 0 || !expiryDateStr || promoPrice <= 0) {
             showNotification('Vui lòng điền đầy đủ thông tin bắt buộc và hợp lệ.', true); return;
         }
-
         let months = (promoPrice > 0 && initialPayment === promoPrice) ? 12 : Math.floor(initialPayment / packagePrice);
-        
-        // Tính ngày hết hạn ban đầu (lấy ngày cuối tháng)
         const selectedExpiryDate = new Date(expiryDateStr);
-        const initialExpiry = new Date(selectedExpiryDate.getFullYear(), selectedExpiryDate.getMonth() + 1, 0); 
-        
+        const initialExpiry = new Date(selectedExpiryDate.getFullYear(), selectedExpiryDate.getMonth() + 1, 0);
         submitAction({
             action: 'add_customer', tenKH: name, soTienNop: initialPayment, hanDungMoi: initialExpiry.toISOString(),
             gia1Thang: packagePrice, soThang: months, giaKhuyenMai: promoPrice,
@@ -443,25 +388,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    // --- MODAL HANDLING & EVENT LISTENERS ---
-    const toggleModal = (show) => modal.classList.toggle('hidden', !show);
-    
-    customerSelect.addEventListener('change', handleCustomerSelect);
+    // --- AUTHENTICATION & INITIALIZATION ---
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        passwordSubmitBtn.disabled = true;
+        passwordSubmitBtn.textContent = 'Đang kiểm tra...';
+        
+        // Đảm bảo dữ liệu đã được tải xong
+        await initialDataFetchPromise;
 
-    // Xử lý nhập liệu số tiền nộp (chỉ cho phép nhập số, tự động thêm dấu phân cách)
+        const enteredPassword = passwordInput.value;
+        if (enteredPassword === correctPassword) {
+            sessionStorage.setItem('isAuthenticated', 'true');
+            passwordGate.classList.add('hidden');
+            populateCustomerDropdown();
+        } else {
+            passwordError.textContent = 'Mật khẩu không chính xác.';
+            passwordInput.value = '';
+            passwordSubmitBtn.disabled = false;
+            passwordSubmitBtn.textContent = 'Truy Cập';
+            setTimeout(() => passwordError.textContent = '', 3000);
+        }
+    };
+
+    const initializeApp = async () => {
+        if (sessionStorage.getItem('isAuthenticated') === 'true') {
+            passwordGate.classList.add('hidden');
+            await fetchInitialData(); // Vẫn phải fetch dữ liệu mới
+            populateCustomerDropdown();
+        } else {
+            passwordGate.classList.remove('hidden');
+            // Bắt đầu tải dữ liệu nền trong khi người dùng nhập mật khẩu
+            initialDataFetchPromise = fetchInitialData();
+        }
+    };
+
+    // --- MODAL & EVENT LISTENERS ---
+    const toggleModal = (show) => modal.classList.toggle('hidden', !show);
+    customerSelect.addEventListener('change', handleCustomerSelect);
     [amountPaidInput, ...newCustomerForm.querySelectorAll('input[id*="price"], input[id*="payment"]')].forEach(input => {
         input.addEventListener('input', (e) => {
             const rawValue = e.target.value;
             const numericValue = parseCurrency(rawValue); 
             e.target.value = numericValue > 0 ? numericValue.toLocaleString('vi-VN') : '';
-            
-            if (e.target.id === 'amount-paid') {
-                calculateNewExpiry();
-            }
+            if (e.target.id === 'amount-paid') { calculateNewExpiry(); }
         });
         input.addEventListener('focus', hideNotification);
     });
-
     submitBtn.addEventListener('click', submitPayment);
     addCustomerBtn.addEventListener('click', () => { hideNotification(); toggleModal(true); });
     notificationCloseBtn.addEventListener('click', hideNotification);
@@ -469,9 +442,10 @@ document.addEventListener('DOMContentLoaded', () => {
     modalCloseBtn.addEventListener('click', () => toggleModal(false));
     modal.addEventListener('click', (e) => { if (e.target === modal) toggleModal(false); });
     newCustomerForm.addEventListener('submit', addNewCustomer);
+    passwordForm.addEventListener('submit', handleLogin);
 
-    // Initial Load
-    fetchAndPopulateCustomers();
+    // --- INITIAL LOAD ---
+    initializeApp();
 });
 </script>
 </body>
