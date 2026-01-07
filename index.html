@@ -199,8 +199,6 @@
       securityModal.style.display = 'none';
       mainContent.classList.remove('hidden');
       loadInvoices(false);
-      // default filter: 7 ngày gần đây
-      setDefaultDateRange7Days();
     }
   });
 
@@ -217,7 +215,6 @@
     setTimeout(() => {
       securityModal.classList.add('hidden');
       mainContent.classList.remove('hidden');
-      setDefaultDateRange7Days();
       loadInvoices(false);
     }, 250);
   }
@@ -244,11 +241,13 @@
   }
 
   function resetFilters() {
-    setDefaultDateRange7Days();
-    document.getElementById('f-room').value = '';
-    document.getElementById('f-customer').value = '';
-    loadInvoices(true);
+  document.getElementById('f-date-from').value = '';
+  document.getElementById('f-date-to').value = '';
+  document.getElementById('f-room').value = '';
+  document.getElementById('f-customer').value = '';
+  loadInvoices(true);
   }
+
 
   function applyFilters() {
     loadInvoices(true);
@@ -289,6 +288,18 @@
 
       const url = GAS_WEB_APP_URL + qs.toString();
       const res = await fetch(url).then(r => r.json());
+      // === SET MẶC ĐỊNH NGÀY = CA GẦN NHẤT (CHỈ 1 NGÀY) ===
+      if (res.latestShiftYMD) {
+       const df = document.getElementById('f-date-from');
+       const dt = document.getElementById('f-date-to');
+
+       // CHỈ set khi user chưa chọn ngày
+       if (df && dt && !df.value && !dt.value) {
+      df.value = res.latestShiftYMD;
+      dt.value = res.latestShiftYMD;
+       }
+      }
+
 
       if (res.status === 'error') {
         if (String(res.message || '').includes('Truy cập bị từ chối')) {
