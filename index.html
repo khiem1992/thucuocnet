@@ -1,202 +1,887 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tra Cứu Hóa Đơn Master (GitHub v1.0)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; transition: background 0.3s; }
-        .invoice-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .loading-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Hóa Đơn Gần Đây</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    /* Modal transition */
+    #detail-modal, #security-modal { transition: opacity .25s ease; }
+    #modal-panel, #security-panel { transition: transform .25s ease; }
+
+    .vip-clickable { color: #2563eb; text-decoration: underline; cursor: pointer; font-weight: 600; }
+    .vip-clickable:hover { color: #1d4ed8; text-decoration: none; }
+
+    /* Print K58 */
+    @media print {
+      @page { size: 58mm auto; margin: 0mm; }
+      body { margin: 0; }
+      body *:not(#print-invoice):not(#print-invoice *) { display: none !important; }
+      #print-invoice, #print-invoice * { visibility: visible; }
+      #print-invoice { position: absolute; left: 0; top: 0; width: 58mm; }
+    }
+    #print-invoice { width: 58mm; font-family: 'Courier New', monospace; font-size: 9px; line-height: 1.2; padding: 2mm; background: #fff; }
+    #print-invoice .header { text-align:center; font-weight:bold; margin-bottom:6px; font-size:11px; }
+    #print-invoice table { width:100%; border-collapse:collapse; margin:3px 0; }
+    #print-invoice td { padding:1px 0; font-size:9px; }
+    #print-invoice .footer { text-align:center; font-style:italic; margin-top:8px; font-size:8px; }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 pb-10">
 
-    <div id="login-modal" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl text-center">
-            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            </div>
-            <h2 class="text-2xl font-bold mb-2">Yêu cầu truy cập</h2>
-            <p class="text-slate-500 mb-6 text-sm">Nhập mật khẩu để tra cứu hóa đơn Master</p>
-            <input type="password" id="api-key-input" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-center text-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-4" placeholder="••••••••">
-            <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all">Vào hệ thống</button>
+<body class="bg-slate-100 text-slate-800">
+
+  <!-- Security modal -->
+  <div id="security-modal" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-[60] p-4">
+    <div id="security-panel" class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 text-center">
+      <div class="mb-6">
+        <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+          <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
         </div>
+        <p class="text-slate-500 mt-2">Vui lòng nhập mật khẩu để truy cập.</p>
+      </div>
+
+      <form onsubmit="event.preventDefault(); checkSecurity();" class="space-y-4">
+        <input type="password" id="api-key-input"
+          class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-center text-lg"
+          placeholder="Nhập mật khẩu..." required autofocus autocomplete="off" />
+        <div class="flex items-center justify-center mt-2">
+          <input id="remember-me" type="checkbox" checked class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500">
+          <label for="remember-me" class="ml-2 text-sm font-medium text-gray-900">Ghi nhớ trên máy này</label>
+        </div>
+        <p id="security-error" class="text-red-500 text-sm hidden">Mật khẩu không đúng!</p>
+        <button type="submit"
+          class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md active:scale-95">
+          Truy Cập
+        </button>
+      </form>
     </div>
+  </div>
 
-    <div id="main-content" class="hidden max-w-5xl mx-auto px-4 pt-8">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-extrabold text-indigo-900">Hóa Đơn Master</h1>
-            <button onclick="logout()" class="text-sm text-red-500 font-medium hover:underline">Đăng xuất</button>
-        </div>
+  <!-- Print area -->
+  <div id="print-invoice" style="display:none;"></div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label class="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Tìm kiếm</label>
-                <input type="text" id="searchBox" oninput="filterData()" placeholder="Số HĐ, Phòng, Tên khách..." class="w-full bg-slate-50 px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-            <div>
-                <label class="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Từ ngày</label>
-                <input type="date" id="dateFrom" onchange="filterData()" class="w-full bg-slate-50 px-4 py-2 rounded-lg outline-none">
-            </div>
-            <div>
-                <label class="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Đến ngày</label>
-                <input type="date" id="dateTo" onchange="filterData()" class="w-full bg-slate-50 px-4 py-2 rounded-lg outline-none">
-            </div>
-        </div>
+  <!-- Detail modal -->
+  <div id="detail-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 flex items-center justify-center z-50 p-4" onclick="closeModal()">
+    <div id="modal-panel" class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center rounded-t-xl z-10">
+        <h3 id="modal-title" class="text-xl font-semibold text-slate-900">Chi Tiết</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-        <div id="loading" class="text-center py-20 flex flex-col items-center">
-            <div class="w-10 h-10 border-4 border-slate-200 border-t-indigo-600 rounded-full loading-spin mb-4"></div>
-            <p class="text-slate-400">Đang tải kho hóa đơn...</p>
+      <div id="modal-content" class="p-6"></div>
+
+      <div id="print-buttons" class="hidden sticky bottom-0 bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between rounded-b-xl z-10">
+        <button onclick="closeModal()" class="bg-red-500 text-white px-5 py-2.5 rounded-lg hover:bg-red-600 shadow-md">
+          Đóng
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button onclick="printInvoicePDF()" title="In K58" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm">
+            In K58
+          </button>
+          <button onclick="downloadInvoiceJPG()" title="Tải JPG" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 shadow-sm">
+            Tải JPG
+          </button>
         </div>
-        <div id="invoiceList" class="space-y-4 hidden"></div>
-        <div id="empty" class="hidden text-center py-20 text-slate-400">Không tìm thấy dữ liệu phù hợp.</div>
+      </div>
     </div>
+  </div>
 
-    <div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 hidden" onclick="closeModal()">
-        <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in scale-95 duration-200" onclick="event.stopPropagation()">
-            <div id="modalHeader" class="px-6 py-4 bg-indigo-600 text-white flex justify-between items-center">
-                <h3 id="modalTitle" class="font-bold">Chi tiết</h3>
-                <button onclick="closeModal()">✕</button>
-            </div>
-            <div id="modalBody" class="p-6 max-h-[75vh] overflow-y-auto"></div>
+  <!-- Main -->
+  <div id="main-content" class="hidden">
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+
+      <div class="flex items-center justify-between gap-3 mb-6">
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">Hóa Đơn Gần Đây</h1>
+
+        <button id="refresh-button" onclick="loadInvoices(true)"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 active:scale-95">
+          Làm mới
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div>
+            <label class="text-sm text-slate-600">Từ ngày</label>
+            <input id="f-date-from" type="date" class="w-full mt-1 px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Đến ngày</label>
+            <input id="f-date-to" type="date" class="w-full mt-1 px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Phòng</label>
+            <input id="f-room" type="text" placeholder="VIP 1..."
+              class="w-full mt-1 px-3 py-2 border rounded-lg" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-sm text-slate-600">Tên khách hàng</label>
+            <input id="f-customer" type="text" placeholder="Nhập tên KH..."
+              class="w-full mt-1 px-3 py-2 border rounded-lg" />
+          </div>
         </div>
+
+        <div class="flex items-center justify-between mt-4">
+          <div class="text-sm text-slate-600">
+            <span id="result-info">—</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="applyFilters()" class="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800">
+              Lọc
+            </button>
+            <button onclick="resetFilters()" class="bg-slate-200 text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-300">
+              Xóa lọc
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loader -->
+      <div id="page-loader" class="flex flex-col items-center justify-center min-h-[40vh]">
+        <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-lg text-slate-700 mt-4 animate-pulse">Đang tải hóa đơn...</span>
+      </div>
+
+      <!-- Error -->
+      <div id="error-banner" class="hidden mb-6 p-5 bg-red-100 border-l-4 border-red-500 text-red-800 rounded-lg shadow-md">
+        <h4 class="font-bold text-lg">Không thể tải dữ liệu!</h4>
+        <p class="mt-3 font-mono text-sm bg-red-50 p-2 rounded" id="error-details"></p>
+        <button onclick="reOpenSecurity()" class="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm font-medium">Nhập lại mật khẩu</button>
+      </div>
+
+      <!-- Table container -->
+      <div id="table-card" class="hidden bg-white rounded-xl shadow-lg p-4 md:p-6">
+        <div id="hd-gan-day-bang"></div>
+      </div>
+
     </div>
+  </div>
 
-    <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw38amG3ymES5MwBNdFvaYFPS7L72EL4oije0WRexZ8BcMfWg2bgfjccsdRqXbqvYR2/exec?'; // <--- QUAN TRỌNG
-        let allData = [];
-        let sessionKey = localStorage.getItem('master_api_key');
+<script>
+  /************ CONFIG ************/
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz0-NvooadVXboaJtyt8MrOocfFfmX-smm3YLW_AO7LK6zX3AQpr4DrY_pnSSqFo-bIlQ/exec?'; // <- dán URL webapp mới (kết thúc bằng /exec?)
+  const API_STORAGE_KEY = 'HD_API_Key_NewIndex';
 
-        window.onload = () => {
-            if(sessionKey) {
-                document.getElementById('login-modal').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-                fetchData();
-            }
+  /************ STATE ************/
+  let sessionApiKey = null;
+  let currentInvoiceData = null;
+  let lastResponseMeta = null;
+
+  const securityModal = document.getElementById('security-modal');
+  const mainContent = document.getElementById('main-content');
+  const pageLoader = document.getElementById('page-loader');
+  const errorBanner = document.getElementById('error-banner');
+  const errorDetails = document.getElementById('error-details');
+  const tableCard = document.getElementById('table-card');
+  const printButtons = document.getElementById('print-buttons');
+
+  /************ AUTO LOGIN ************/
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = localStorage.getItem(API_STORAGE_KEY);
+    if (savedKey) {
+      sessionApiKey = savedKey;
+      securityModal.style.display = 'none';
+      mainContent.classList.remove('hidden');
+      loadInvoices(false);
+      // default filter: 7 ngày gần đây
+      setDefaultDateRange7Days();
+    }
+  });
+
+  function checkSecurity() {
+    const input = document.getElementById('api-key-input');
+    const rememberMe = document.getElementById('remember-me');
+    const key = input.value.trim();
+    if (!key) return;
+
+    sessionApiKey = key;
+    if (rememberMe.checked) localStorage.setItem(API_STORAGE_KEY, key);
+
+    securityModal.classList.add('opacity-0');
+    setTimeout(() => {
+      securityModal.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      setDefaultDateRange7Days();
+      loadInvoices(false);
+    }, 250);
+  }
+
+  function reOpenSecurity() {
+    localStorage.removeItem(API_STORAGE_KEY);
+    sessionApiKey = null;
+    errorBanner.classList.add('hidden');
+    mainContent.classList.add('hidden');
+    securityModal.style.display = '';
+    securityModal.classList.remove('hidden');
+    securityModal.classList.remove('opacity-0');
+    document.getElementById('api-key-input').value = '';
+    document.getElementById('api-key-input').focus();
+  }
+
+  /************ FILTER UI ************/
+  function setDefaultDateRange7Days() {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    document.getElementById('f-date-from').value = toYMD(from);
+    document.getElementById('f-date-to').value = toYMD(to);
+  }
+
+  function resetFilters() {
+    setDefaultDateRange7Days();
+    document.getElementById('f-room').value = '';
+    document.getElementById('f-customer').value = '';
+    loadInvoices(true);
+  }
+
+  function applyFilters() {
+    loadInvoices(true);
+  }
+
+  function toYMD(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  /************ LOAD INVOICES ************/
+  async function loadInvoices(force) {
+    if (!sessionApiKey) return;
+
+    errorBanner.classList.add('hidden');
+    pageLoader.style.display = 'flex';
+    tableCard.classList.add('hidden');
+
+    try {
+      const dateFrom = document.getElementById('f-date-from').value;
+      const dateTo = document.getElementById('f-date-to').value;
+      const room = document.getElementById('f-room').value.trim();
+      const customer = document.getElementById('f-customer').value.trim();
+
+      const qs = new URLSearchParams({
+        key: sessionApiKey,
+        action: 'getInvoices',
+        dateFrom,
+        dateTo,
+        room,
+        customer,
+        limit: '200',
+        offset: '0',
+        t: Date.now()
+      });
+
+      const url = GAS_WEB_APP_URL + qs.toString();
+      const res = await fetch(url).then(r => r.json());
+
+      if (res.status === 'error') {
+        if (String(res.message || '').includes('Truy cập bị từ chối')) {
+          localStorage.removeItem(API_STORAGE_KEY);
+        }
+        throw new Error(res.message || 'Lỗi tải dữ liệu');
+      }
+
+      lastResponseMeta = res;
+      document.getElementById('result-info').textContent = `Tổng: ${res.total} hóa đơn`;
+
+      // render giống “hóa đơn gần đây” (nhóm theo ca 7:00)
+      renderInvoiceTable({ headers: res.headers, rows: res.rows }, 'hd-gan-day-bang', 'Không có hóa đơn');
+
+      pageLoader.style.display = 'none';
+      tableCard.classList.remove('hidden');
+    } catch (err) {
+      console.error(err);
+      errorDetails.textContent = err.message;
+      errorBanner.classList.remove('hidden');
+      pageLoader.style.display = 'none';
+    }
+  }
+
+  /************ RENDER TABLE: GROUP BY SHIFT (07:00-06:59) ************/
+  function renderInvoiceTable(dataBlock, elementId, emptyMessage) {
+    const container = document.getElementById(elementId);
+    if (!dataBlock || !dataBlock.rows || dataBlock.rows.length === 0) {
+      container.innerHTML = `<p class="text-sm text-slate-500 italic">${emptyMessage}</p>`;
+      return;
+    }
+
+    const orderedHeaders = ['PHÒNG', 'THÀNH TIỀN', 'THỰC ĐƠN', 'PHỤC VỤ', 'VÀO', 'RA'];
+    const orderedIndices = [1, 4, 5, 6, 2, 3]; // [Phòng, Tiền, Menu, PV, Vào, Ra]
+
+    // group by shift day using "Ra"
+    const grouped = {};
+    dataBlock.rows.forEach(row => {
+      const checkoutTimeString = formatDateTime(row[3], true) || '';
+      if (!checkoutTimeString) {
+        const k = 'Không rõ ngày';
+        if (!grouped[k]) grouped[k] = [];
+        grouped[k].push(row);
+        return;
+      }
+      const checkoutDateObj = parseDMYHM(checkoutTimeString);
+      if (!checkoutDateObj) {
+        const k = checkoutTimeString.split(' ')[0] || 'Lỗi định dạng';
+        if (!grouped[k]) grouped[k] = [];
+        grouped[k].push(row);
+        return;
+      }
+
+      let groupingDateObj = new Date(checkoutDateObj);
+      if (checkoutDateObj.getHours() < 7) groupingDateObj.setDate(groupingDateObj.getDate() - 1);
+      const dateKey = formatDateToDMY(groupingDateObj);
+
+      if (!grouped[dateKey]) grouped[dateKey] = [];
+      grouped[dateKey].push(row);
+    });
+
+    // sort group keys desc by date
+    const keys = Object.keys(grouped).sort((a,b) => {
+      const da = parseDMY(a);
+      const db = parseDMY(b);
+      return (db?.getTime()||0) - (da?.getTime()||0);
+    });
+
+    let html = '<div class="space-y-6">';
+    keys.forEach(date => {
+      html += `
+        <div class="bg-slate-50 rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-all">
+          <div class="bg-indigo-200 text-indigo-900 text-center py-2 font-semibold text-sm tracking-wide">
+            Từ 7:00 ngày ${date}
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-slate-100">
+                <tr>
+                  ${orderedHeaders.map(h => `<th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">${h}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-100">
+      `;
+
+      grouped[date].forEach(row => {
+        // row: [Số HĐ, Phòng, Vào, Ra, Thành tiền, Thực đơn, Phục vụ, Tên KH, Ngày lưu]
+        html += `<tr class="hover:bg-slate-50 cursor-pointer" onclick="showCombinedDetailModal(this, event)">`;
+
+        orderedIndices.forEach((idx, i) => {
+          let cell = row[idx] || '';
+          let displayCell = cell;
+          let tdClass = 'px-4 py-3 whitespace-nowrap text-sm text-slate-800';
+          let tdOnclick = '';
+
+          if (i === 0) { // phòng + tên KH
+            const tenPhong = row[1] || '';
+            const tenKH = row[7] || '';
+            displayCell = tenKH ? `${tenPhong} - <span class="font-semibold text-indigo-700">${escapeHtml(tenKH)}</span>` : escapeHtml(tenPhong);
+          }
+          else if (i === 2) { // thực đơn (idx 5)
+            const menuItems = (cell && String(cell).includes('*')) ? String(cell).split(';').filter(Boolean).length : 0;
+            displayCell = menuItems > 0 ? `<span class="vip-clickable">${menuItems} món</span>` : '---';
+            if (menuItems > 0) tdOnclick = `onclick="showMenuDetailModal(this, event); event.stopPropagation();"`;
+          }
+          else if (i === 3) { // phục vụ (idx 6)
+            const staffCount = (cell && String(cell).includes('*')) ? String(cell).split(';').filter(Boolean).length : 0;
+            displayCell = staffCount > 0 ? `<strong class="vip-clickable">${staffCount} NV</strong>` : '---';
+            if (staffCount > 0) tdOnclick = `onclick="showStaffDetailModal(this, event); event.stopPropagation();"`;
+          }
+          else if (!isNaN(cell) && cell > 40000 && String(cell).includes('.')) {
+            displayCell = convertExcelDate(cell, true);
+          }
+          else if (!isNaN(cell) && parseFloat(cell) > 1000 && i === 1) { // thành tiền
+            displayCell = `<span class="font-semibold text-green-700">${formatCurrency(cell)}</span>`;
+          }
+          else if (i === 4 || i === 5) {
+            displayCell = escapeHtml(formatDateTime(cell, true));
+          } else {
+            displayCell = escapeHtml(String(displayCell));
+          }
+
+          html += `<td class="${tdClass}" ${tdOnclick}>${displayCell}</td>`;
+        });
+
+        html += `
+          <td class="hidden" data-role="detail">${escapeHtml(String(row[6] || ''))}</td>
+          <td class="hidden" data-role="menu">${escapeHtml(String(row[5] || ''))}</td>
+          <td class="hidden" data-role="raw-data">${escapeHtml(JSON.stringify(row))}</td>
+        `;
+        html += `</tr>`;
+      });
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
+  }
+
+  /************ MODAL ************/
+  function openModal() {
+    const modal = document.getElementById('detail-modal');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+  }
+  function closeModal() {
+    const modal = document.getElementById('detail-modal');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+    printButtons.classList.add('hidden');
+    currentInvoiceData = null;
+  }
+
+  /************ PARSERS ************/
+  function parseStaffJS(raw) {
+    if (!raw) return [];
+    try {
+      return raw.toString().split(';').filter(x => x.trim() !== '').map(item => {
+        const parts = item.split('*');
+        if (parts.length < 6) return null;
+        return {
+          phong: parts[0] || '',
+          ten: parts[1] || '',
+          gioVao: parseFloat(parts[2]) || 0,
+          gioRa: parseFloat(parts[3]) || 0,
+          tongPhut: parseFloat(parts[4]) || 0,
+          thanhTien: parseFloat(parts[5]) || 0
         };
+      }).filter(Boolean);
+    } catch { return []; }
+  }
 
-        function handleLogin() {
-            const key = document.getElementById('api-key-input').value;
-            if(!key) return;
-            sessionKey = key;
-            localStorage.setItem('master_api_key', key);
-            document.getElementById('login-modal').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            fetchData();
-        }
+  function parseThucDonJS(raw) {
+    if (!raw) return [];
+    try {
+      return raw.toString().split(';').filter(x => x.trim() !== '').map(item => {
+        const parts = item.split('*');
+        if (parts.length < 3) return null;
+        const soLuong = parseFloat(parts[1]) || 0;
+        const donGia = parseFloat(parts[2]) || 0;
+        return {
+          ten: parts[0] || '',
+          soLuong: Math.max(0, soLuong),
+          donGia: Math.max(0, donGia),
+          thanhTien: Math.max(0, soLuong) * Math.max(0, donGia)
+        };
+      }).filter(Boolean);
+    } catch { return []; }
+  }
 
-        async function fetchData() {
-            try {
-                const response = await fetch(`${GAS_URL}?key=${sessionKey}&t=${Date.now()}`);
-                const res = await response.json();
-                if(res.status === 'success') {
-                    allData = res.data;
-                    filterData();
-                } else {
-                    alert(res.message);
-                    logout();
-                }
-            } catch (e) {
-                alert("Lỗi kết nối API!");
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
-            }
-        }
+  /************ DETAIL MODALS ************/
+  function showCombinedDetailModal(trElement, event) {
+    event.stopPropagation();
+    const rawDataString = trElement.querySelector('td[data-role="raw-data"]').innerText;
+    if (!rawDataString) return;
 
-        function filterData() {
-            const search = document.getElementById('searchBox').value.toLowerCase();
-            const from = document.getElementById('dateFrom').value;
-            const to = document.getElementById('dateTo').value;
+    const rowData = JSON.parse(rawDataString);
+    const menuData = parseThucDonJS(rowData[5]);
+    const staffData = parseStaffJS(rowData[6]);
 
-            const filtered = allData.filter(row => {
-                const textMatch = row[0].toString().includes(search) || row[1].toLowerCase().includes(search) || row[7].toLowerCase().includes(search);
-                const dateObj = parseDate(row[2]);
-                let dateMatch = true;
-                if(from) dateMatch = dateMatch && (dateObj >= new Date(from));
-                if(to) {
-                    const toDate = new Date(to); toDate.setHours(23,59,59);
-                    dateMatch = dateMatch && (dateObj <= toDate);
-                }
-                return textMatch && dateMatch;
-            }).reverse(); // Mới nhất lên đầu
+    const tongThucDon = menuData.reduce((sum, m) => sum + m.thanhTien, 0);
+    const tongNhanVien = staffData.reduce((sum, nv) => sum + nv.thanhTien, 0);
+    const thanhTienHD = parseFloat(rowData[4]) || 0;
 
-            renderList(filtered);
-        }
+    currentInvoiceData = {
+      type: 'regular',
+      soHD: rowData[0],
+      phong: rowData[1],
+      gioVao: rowData[2],
+      gioRa: rowData[3],
+      thanhTienHD,
+      thucDon: menuData,
+      nhanVien: staffData,
+      tongThucDon,
+      tongNhanVien,
+      tongCong: thanhTienHD,
+      soNhanVien: staffData.length,
+      tenKH: rowData[7] || ''
+    };
 
-        function renderList(data) {
-            const container = document.getElementById('invoiceList');
-            const empty = document.getElementById('empty');
-            container.innerHTML = '';
-            
-            if(data.length === 0) {
-                container.classList.add('hidden');
-                empty.classList.remove('hidden');
-                return;
-            }
-            container.classList.remove('hidden');
-            empty.classList.add('hidden');
+    document.getElementById('modal-title').innerText = `Chi Tiết Hóa Đơn - ${rowData[1]}`;
 
-            data.forEach(row => {
-                const div = document.createElement('div');
-                div.className = "bg-white p-4 rounded-2xl border border-slate-200 invoice-card cursor-pointer flex justify-between items-center transition-all";
-                div.onclick = () => showDetail(row);
-                div.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-sm">#${row[0]}</div>
-                        <div>
-                            <div class="font-bold text-slate-800">${row[1]} <span class="text-slate-400 font-normal">|</span> ${row[7] || 'Khách lẻ'}</div>
-                            <div class="text-[10px] text-slate-500 uppercase font-semibold">${formatDate(row[2])}</div>
-                        </div>
-                    </div>
-                    <div class="text-green-600 font-extrabold">${new Intl.NumberFormat('vi-VN').format(row[4])}</div>
-                `;
-                container.appendChild(div);
-            });
-        }
+    let html = '<div class="space-y-6">';
 
-        function showDetail(row) {
-            document.getElementById('modalTitle').innerText = `Hóa đơn #${row[0]} - ${row[1]}`;
-            const body = document.getElementById('modalBody');
-            
-            const parseSub = (str, label) => {
-                if(!str) return `<p class="text-slate-400 text-xs italic">Không có ${label}</p>`;
-                return str.split(';').map(item => {
-                    const p = item.split('*');
-                    return `<div class="flex justify-between py-1 border-b border-slate-50 text-xs"><span>${p[0]}</span><span class="font-bold text-slate-600">${new Intl.NumberFormat('vi-VN').format(p[p.length-1])}</span></div>`;
-                }).join('');
-            };
+    html += `
+      <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 border border-indigo-200">
+        <h4 class="font-semibold text-indigo-900 mb-3 text-lg">Thông Tin Hóa Đơn</h4>
+        <div class="grid grid-cols-3 gap-3 text-sm">
+          <div class="bg-white rounded p-2"><span class="text-slate-600 text-xs block">Số HĐ</span><strong class="text-indigo-700">${escapeHtml(String(rowData[0]))}</strong></div>
+          <div class="bg-white rounded p-2"><span class="text-slate-600 text-xs block">Phòng</span><strong class="text-indigo-700">${escapeHtml(String(rowData[1]))}</strong></div>
+          <div class="bg-white rounded p-2"><span class="text-slate-600 text-xs block">Tên KH</span><strong class="text-indigo-700">${escapeHtml(currentInvoiceData.tenKH || '---')}</strong></div>
 
-            body.innerHTML = `
-                <div class="bg-slate-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-4 text-xs">
-                    <div><p class="text-slate-400 uppercase font-bold text-[9px]">Vào lúc</p><p class="font-bold">${formatDate(row[2])}</p></div>
-                    <div><p class="text-slate-400 uppercase font-bold text-[9px]">Ra lúc</p><p class="font-bold">${formatDate(row[3])}</p></div>
-                    <div class="col-span-2 pt-2 border-t border-slate-200 flex justify-between items-center text-sm">
-                        <span class="font-bold text-slate-500 uppercase text-[10px]">Tổng thanh toán</span>
-                        <span class="text-xl font-black text-indigo-600">${new Intl.NumberFormat('vi-VN').format(row[4])} VNĐ</span>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <h4 class="text-[10px] font-black uppercase text-indigo-500 tracking-widest">Chi tiết dịch vụ</h4>
-                    <div>${parseSub(row[5], 'thực đơn')}</div>
-                    <h4 class="text-[10px] font-black uppercase text-blue-500 tracking-widest pt-2">Nhân viên phục vụ</h4>
-                    <div>${parseSub(row[6], 'nhân viên')}</div>
-                </div>
-            `;
-            document.getElementById('modal').classList.remove('hidden');
-        }
+          <div class="bg-white rounded p-2"><span class="text-slate-600 text-xs block">Giờ vào</span><strong class="text-indigo-700">${escapeHtml(formatDateTime(rowData[2], true))}</strong></div>
+          <div class="bg-white rounded p-2"><span class="text-slate-600 text-xs block">Giờ ra</span><strong class="text-indigo-700">${escapeHtml(formatDateTime(rowData[3], true))}</strong></div>
+          <div class="bg-white rounded p-2 col-span-3"><span class="text-slate-600 text-xs block">Thành tiền HĐ</span><strong class="text-2xl text-green-600">${formatCurrency(rowData[4])}</strong></div>
+        </div>
+      </div>
+    `;
 
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-        function logout() { localStorage.removeItem('master_api_key'); location.reload(); }
-        
-        function parseDate(v) { return typeof v === 'number' ? new Date((v - 25569) * 86400000) : new Date(v); }
-        function formatDate(v) { 
-            const d = parseDate(v); 
-            return d.toLocaleString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
-        }
-    </script>
+    // Thực đơn
+    if (menuData.length > 0) {
+      html += `
+        <div>
+          <h4 class="font-semibold text-slate-900 mb-3">Thực Đơn (${menuData.length} món)</h4>
+          <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-orange-50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-slate-700 uppercase">Món</th>
+                  <th class="px-4 py-2 text-center text-xs font-medium text-slate-700 uppercase">SL</th>
+                  <th class="px-4 py-2 text-right text-xs font-medium text-slate-700 uppercase">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+      `;
+      menuData.forEach(mon => {
+        html += `
+          <tr class="hover:bg-orange-50">
+            <td class="px-4 py-2 text-sm text-slate-800">${escapeHtml(mon.ten)}</td>
+            <td class="px-4 py-2 text-sm text-center font-medium text-slate-700">${mon.soLuong}</td>
+            <td class="px-4 py-2 text-sm text-right font-semibold text-slate-900">${formatCurrency(mon.thanhTien)}</td>
+          </tr>
+        `;
+      });
+      html += `
+              </tbody>
+              <tfoot class="bg-orange-50 border-t-2 border-orange-200">
+                <tr>
+                  <td colspan="2" class="px-4 py-3 text-sm font-bold text-slate-700 text-right">Tổng thực đơn:</td>
+                  <td class="px-4 py-3 text-base font-bold text-orange-600 text-right">${formatCurrency(tongThucDon)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `<div class="text-sm text-slate-500 italic bg-slate-50 rounded-lg p-4 text-center">Không có thực đơn</div>`;
+    }
+
+    // Nhân viên
+    if (staffData.length > 0) {
+      html += `
+        <div>
+          <h4 class="font-semibold text-slate-900 mb-3">Nhân Viên Phục Vụ (${staffData.length})</h4>
+          <div class="space-y-3">
+      `;
+      staffData.forEach((nv, idx) => {
+        html += `
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="font-semibold text-slate-900 text-base">${idx + 1}. ${escapeHtml(nv.ten)}</span>
+                <p class="text-xs text-slate-600 mt-1">
+                  <strong>Thời gian:</strong> ${convertExcelDate(nv.gioVao)} → ${convertExcelDate(nv.gioRa)} (${convertMinutesToHM(nv.tongPhut)})
+                </p>
+              </div>
+              <span class="font-bold text-lg text-blue-700">${formatCurrency(nv.thanhTien)}</span>
+            </div>
+          </div>
+        `;
+      });
+      html += `
+          </div>
+          <div class="mt-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-300">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-800 text-lg">Tổng tiền nhân viên:</span>
+              <span class="font-bold text-blue-700 text-2xl">${formatCurrency(tongNhanVien)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `<div class="text-sm text-slate-500 italic bg-slate-50 rounded-lg p-4 text-center">Không có nhân viên phục vụ</div>`;
+    }
+
+    html += '</div>';
+    document.getElementById('modal-content').innerHTML = html;
+    printButtons.classList.remove('hidden');
+    openModal();
+  }
+
+  function showStaffDetailModal(tdElement, event) {
+    event.stopPropagation();
+    const row = tdElement.closest('tr');
+    const detailString = row.querySelector('td[data-role="detail"]').innerText;
+    const entries = parseStaffJS(detailString);
+
+    document.getElementById('modal-title').innerText = 'Chi Tiết Phục Vụ';
+    if (!entries.length) {
+      document.getElementById('modal-content').innerHTML = `<div class="text-sm text-slate-500 italic bg-slate-50 rounded-lg p-4 text-center">Không có nhân viên phục vụ</div>`;
+      printButtons.classList.add('hidden');
+      openModal();
+      return;
+    }
+
+    let html = '<ul class="divide-y divide-slate-200 -mt-3">';
+    entries.forEach(nv => {
+      html += `
+        <li class="py-3">
+          <dl class="grid grid-cols-3 gap-x-4 gap-y-1 text-sm">
+            <dt class="font-medium text-slate-800">Nhân viên:</dt><dd class="text-slate-700 col-span-2">${escapeHtml(nv.ten)}</dd>
+            <dt class="font-medium text-slate-800">Thời gian:</dt><dd class="text-slate-700 col-span-2">${convertExcelDate(nv.gioVao)} - ${convertExcelDate(nv.gioRa)} (${convertMinutesToHM(nv.tongPhut)})</dd>
+            <dt class="font-medium text-slate-800">Thành tiền:</dt><dd class="text-blue-700 font-semibold col-span-2">${formatCurrency(nv.thanhTien)}</dd>
+          </dl>
+        </li>
+      `;
+    });
+    document.getElementById('modal-content').innerHTML = html + '</ul>';
+    printButtons.classList.add('hidden');
+    openModal();
+  }
+
+  function showMenuDetailModal(tdElement, event) {
+    event.stopPropagation();
+    const row = tdElement.closest('tr');
+    const menuString = row.querySelector('td[data-role="menu"]').innerText;
+    const menuData = parseThucDonJS(menuString);
+
+    document.getElementById('modal-title').innerText = 'Chi Tiết Thực Đơn';
+    if (!menuData.length) {
+      document.getElementById('modal-content').innerHTML = `<div class="text-sm text-slate-500 italic bg-slate-50 rounded-lg p-4 text-center">Không có thực đơn</div>`;
+      printButtons.classList.add('hidden');
+      openModal();
+      return;
+    }
+
+    const phong = JSON.parse(row.querySelector('td[data-role="raw-data"]').innerText)[1];
+    document.getElementById('modal-title').innerText = `Thực Đơn - ${phong}`;
+
+    let tongThucDon = 0;
+    let html = `
+      <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200">
+          <thead class="bg-orange-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-slate-700 uppercase">Món</th>
+              <th class="px-4 py-2 text-center text-xs font-medium text-slate-700 uppercase">SL</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-700 uppercase">Đơn giá</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-slate-700 uppercase">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+    `;
+
+    menuData.forEach(mon => {
+      tongThucDon += mon.thanhTien;
+      html += `
+        <tr class="hover:bg-orange-50">
+          <td class="px-4 py-2 text-sm text-slate-800">${escapeHtml(mon.ten)}</td>
+          <td class="px-4 py-2 text-sm text-center font-medium text-slate-700">${mon.soLuong}</td>
+          <td class="px-4 py-2 text-sm text-right text-slate-600">${formatCurrency(mon.donGia)}</td>
+          <td class="px-4 py-2 text-sm text-right font-semibold text-slate-900">${formatCurrency(mon.thanhTien)}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+          <tfoot class="bg-orange-50 border-t-2 border-orange-200">
+            <tr>
+              <td colspan="3" class="px-4 py-3 text-sm font-bold text-slate-700 text-right">Tổng thực đơn:</td>
+              <td class="px-4 py-3 text-base font-bold text-orange-600 text-right">${formatCurrency(tongThucDon)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+
+    document.getElementById('modal-content').innerHTML = html;
+    printButtons.classList.add('hidden');
+    openModal();
+  }
+
+  /************ PRINT ************/
+  function generateInvoiceHTML() {
+    if (!currentInvoiceData) return '';
+    const now = new Date();
+    const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear().toString().slice(-2)}`;
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    let tienGio = currentInvoiceData.tongCong - currentInvoiceData.tongThucDon - currentInvoiceData.tongNhanVien;
+    if (tienGio < 0 && Math.abs(tienGio) < 100) tienGio = 0;
+
+    let html = `<div class="header">PHIẾU PHỤC VỤ</div>
+      <div style="margin-bottom:6px;"><strong>Phòng: ${escapeHtml(currentInvoiceData.phong)}</strong></div>`;
+
+    if (currentInvoiceData.nhanVien && currentInvoiceData.nhanVien.length > 0) {
+      html += `
+      <table style="font-size:9px;">
+        <thead><tr>
+          <td style="width:25%;"><strong>NV</strong></td>
+          <td style="width:25%;"><strong>Vào</strong></td>
+          <td style="width:25%;"><strong>Ra</strong></td>
+          <td style="width:25%; text-align:right;"><strong>T.Tiền</strong></td>
+        </tr></thead>
+        <tbody>`;
+      currentInvoiceData.nhanVien.forEach(nv => {
+        html += `<tr>
+          <td>${escapeHtml(nv.ten)}</td>
+          <td>${convertExcelDate(nv.gioVao)}</td>
+          <td>${convertExcelDate(nv.gioRa)}</td>
+          <td style="text-align:right;">${formatCurrency(nv.thanhTien)}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>
+      <div style="text-align:right; margin-top:5px; font-size:9px;">
+        <strong>TỔNG PHỤ THU: ${formatCurrency(currentInvoiceData.tongNhanVien)}</strong>
+        <div style="font-size:10px; line-height:1; margin:3px 0;">----------------------------------</div>
+      </div>`;
+    }
+
+    html += `<div class="header">PHIẾU THANH TOÁN</div>
+      <div style="margin:4px 0;"><strong>Phòng: ${escapeHtml(currentInvoiceData.phong)}</strong></div>`;
+    if (currentInvoiceData.soHD) html += `<div style="margin:2px 0; font-size:9px;">HĐ: ${escapeHtml(String(currentInvoiceData.soHD))}</div>`;
+    if (currentInvoiceData.tenKH) html += `<div style="margin:2px 0; font-size:9px;">KH: ${escapeHtml(String(currentInvoiceData.tenKH))}</div>`;
+
+    html += `<div style="margin:2px 0; font-size:9px;">Vào: ${escapeHtml(formatDateTime(currentInvoiceData.gioVao, true))}</div>
+             <div style="margin:2px 0; font-size:9px;">Ra: ${escapeHtml(formatDateTime(currentInvoiceData.gioRa, true))}</div>`;
+
+    if (currentInvoiceData.thucDon && currentInvoiceData.thucDon.length > 0) {
+      html += `<table style="margin-top:5px;">
+        <thead><tr>
+          <td style="width:50%;"><strong>Tên hàng</strong></td>
+          <td style="width:25%; text-align:center;"><strong>SL</strong></td>
+          <td style="width:25%; text-align:right;"><strong>T.Tiền</strong></td>
+        </tr></thead><tbody>`;
+      currentInvoiceData.thucDon.forEach(mon => {
+        html += `<tr>
+          <td>${escapeHtml(mon.ten)}</td>
+          <td style="text-align:center;">${mon.soLuong}</td>
+          <td style="text-align:right;">${formatCurrency(mon.thanhTien)}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>
+        <div style="font-size:10px; line-height:1; margin:5px 0;">----------------------------------</div>`;
+    }
+
+    html += `<div style="margin-top:5px; font-size:9px;">
+      <div style="display:flex; justify-content:space-between; margin:2px 0;"><span>Thực đơn:</span><strong>${formatCurrency(currentInvoiceData.tongThucDon)}</strong></div>
+      <div style="display:flex; justify-content:space-between; margin:2px 0;"><span>Tiền giờ:</span><strong>${formatCurrency(tienGio)}</strong></div>
+      <div style="display:flex; justify-content:space-between; margin:2px 0;"><span>Phụ thu:</span><strong>${formatCurrency(currentInvoiceData.tongNhanVien)}</strong></div>
+      </div>
+      <div style="font-size:10px; line-height:1; margin:5px 0;">----------------------------------</div>
+      <div style="margin-top:4px; font-size:11px;">
+        <div style="display:flex; justify-content:space-between;">
+          <strong>Thành tiền:</strong><strong style="font-size:13px;">${formatCurrency(currentInvoiceData.tongCong)}</strong>
+        </div>
+      </div>
+      <div style="font-size:10px; line-height:1; margin:5px 0;">***********************************</div>
+      <div class="footer">In lúc: ${dateStr} ${timeStr}<br>Cảm ơn quý khách. Hẹn gặp lại!</div>`;
+
+    return html;
+  }
+
+  function printInvoicePDF() {
+    if (!currentInvoiceData) { alert('Không có dữ liệu để in!'); return; }
+    const printDiv = document.getElementById('print-invoice');
+    printDiv.innerHTML = generateInvoiceHTML();
+    printDiv.style.display = 'block';
+    setTimeout(() => { window.print(); printDiv.style.display = 'none'; }, 100);
+  }
+
+  async function downloadInvoiceJPG() {
+    if (!currentInvoiceData) { alert('Không có dữ liệu để tải!'); return; }
+    const printDiv = document.getElementById('print-invoice');
+    printDiv.innerHTML = generateInvoiceHTML();
+    printDiv.style.display = 'block';
+
+    try {
+      const canvas = await html2canvas(printDiv, { scale: 3, backgroundColor: '#ffffff', width: 220, windowWidth: 220 });
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `HoaDon_${String(currentInvoiceData.phong).replace(/\s+/g,'_')}_${Date.now()}.jpg`;
+        link.click();
+        URL.revokeObjectURL(url);
+        printDiv.style.display = 'none';
+      }, 'image/jpeg', 0.95);
+    } catch (e) {
+      console.error(e);
+      alert('Không thể tạo ảnh. Vui lòng thử lại!');
+      printDiv.style.display = 'none';
+    }
+  }
+
+  /************ UTILITIES ************/
+  function formatDateTime(value, fullDate = false) {
+    if (typeof value === 'string' && value.trim() !== '') {
+      if (value.match(/\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}/)) return value;
+      if (value.match(/^\d{1,2}:\d{2}$/)) return value;
+    }
+    return convertExcelDate(value, fullDate);
+  }
+
+  function parseDMYHM(str) {
+    if (!str) return null;
+    const parts = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
+    if (!parts) return null;
+    return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]);
+  }
+
+  function parseDMY(str) {
+    if (!str) return null;
+    const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return null;
+    return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]));
+  }
+
+  function formatDateToDMY(dateObj) {
+    if (!dateObj) return 'Không rõ ngày';
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const y = dateObj.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+
+  function convertExcelDate(serial, fullDate = false) {
+    if (!serial || serial === '' || serial === 0) return '---';
+    if (typeof serial === 'string') serial = parseFloat(serial);
+    if (isNaN(serial) || serial < 0) return '---';
+    const date = new Date((serial - 25569) * 86400000);
+    const adj = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+    if (fullDate) {
+      return `${String(adj.getDate()).padStart(2,'0')}/${String(adj.getMonth()+1).padStart(2,'0')}/${adj.getFullYear()} ${String(adj.getHours()).padStart(2,'0')}:${String(adj.getMinutes()).padStart(2,'0')}`;
+    }
+    return `${String(adj.getHours()).padStart(2,'0')}:${String(adj.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function convertMinutesToHM(m) {
+    if (isNaN(m) || m < 0) return '---';
+    const h = Math.floor(m / 60), min = Math.round(m % 60);
+    return `${h} giờ ${min} phút`;
+  }
+
+  function formatCurrency(n) {
+    if (isNaN(n)) return n;
+    return new Intl.NumberFormat('vi-VN').format(n);
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+</script>
 </body>
 </html>
